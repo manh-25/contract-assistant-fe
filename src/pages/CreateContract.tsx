@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Save, RotateCcw, Trash2, Download } from "lucide-react";
+import { Save, RotateCcw, Trash2, Download, PenTool } from "lucide-react";
 import { Language } from "@/components/LanguageSwitcher";
 import { useTranslation } from "@/lib/translations";
 import { useToast } from "@/hooks/use-toast";
@@ -139,6 +139,15 @@ Hợp đồng này được lập thành 02 bản có giá trị pháp lý như 
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold">{t.editContract}</h2>
                 <div className="flex gap-2">
+                  <Button size="sm" onClick={() => {
+                    toast({
+                      title: language === "vi" ? "Đang tạo hợp đồng" : "Generating contract",
+                      description: language === "vi" ? "Hợp đồng đang được tạo từ thông tin bạn nhập" : "Contract is being generated from your details",
+                    });
+                  }}>
+                    <PenTool className="w-4 h-4 mr-1" />
+                    {t.generateContract}
+                  </Button>
                   <Button variant="outline" size="sm" onClick={handleSave}>
                     <Save className="w-4 h-4 mr-1" />
                     {t.save}

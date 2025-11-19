@@ -8,6 +8,7 @@ export const translations = {
     deepAnalysis: "Phân tích chuyên sâu",
     templates: "Template hợp đồng",
     createContract: "Tạo hợp đồng",
+    dashboard: "Bảng điều khiển",
     
     // Home page
     heroTitle: "Trợ lý hợp đồng thông minh",
@@ -53,6 +54,19 @@ export const translations = {
     resetContract: "Làm lại",
     deleteContract: "Xóa",
     exportContract: "Xuất hợp đồng",
+    generateContract: "Tạo hợp đồng",
+    
+    // Dashboard
+    dashboardTitle: "Bảng điều khiển",
+    welcomeBack: "Chào mừng trở lại",
+    recentContracts: "Hợp đồng gần đây",
+    quickActions: "Thao tác nhanh",
+    statistics: "Thống kê",
+    totalContracts: "Tổng hợp đồng",
+    reviewsCompleted: "Đã review",
+    contractsCreated: "Đã tạo",
+    viewAll: "Xem tất cả",
+    noContracts: "Chưa có hợp đồng nào",
     
     // Common
     back: "Quay lại",
@@ -72,6 +86,7 @@ export const translations = {
     deepAnalysis: "Deep Analysis",
     templates: "Contract Templates",
     createContract: "Create Contract",
+    dashboard: "Dashboard",
     
     // Home page
     heroTitle: "Smart Contract Assistant",
@@ -117,6 +132,19 @@ export const translations = {
     resetContract: "Reset",
     deleteContract: "Delete",
     exportContract: "Export Contract",
+    generateContract: "Generate Contract",
+    
+    // Dashboard
+    dashboardTitle: "Dashboard",
+    welcomeBack: "Welcome Back",
+    recentContracts: "Recent Contracts",
+    quickActions: "Quick Actions",
+    statistics: "Statistics",
+    totalContracts: "Total Contracts",
+    reviewsCompleted: "Reviews Completed",
+    contractsCreated: "Contracts Created",
+    viewAll: "View All",
+    noContracts: "No contracts yet",
     
     // Common
     back: "Back",
