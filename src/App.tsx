@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Navigation } from "./components/Navigation";
 import { Language } from "./components/LanguageSwitcher";
 import Home from "./pages/Home";
+import Dashboard from "./pages/Dashboard";
 import QuickReview from "./pages/QuickReview";
 import DeepAnalysis from "./pages/DeepAnalysis";
 import Templates from "./pages/Templates";
@@ -27,6 +28,7 @@ const App = () => {
           <Navigation language={language} onLanguageChange={setLanguage} />
           <Routes>
             <Route path="/" element={<Home language={language} />} />
+            <Route path="/dashboard" element={<Dashboard language={language} />} />
             <Route path="/quick-review" element={<QuickReview language={language} />} />
             <Route path="/deep-analysis" element={<DeepAnalysis language={language} />} />
             <Route path="/templates" element={<Templates language={language} />} />
