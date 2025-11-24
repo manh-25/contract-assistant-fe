@@ -100,6 +100,15 @@ export const translations = {
     loginButton: "Đăng nhập",
     noAccount: "Chưa có tài khoản?",
     signUp: "Đăng ký ngay",
+    
+    // Sign Up
+    signUpTitle: "Đăng ký",
+    signUpSubtitle: "Tạo tài khoản mới để bắt đầu",
+    confirmPassword: "Xác nhận mật khẩu",
+    signUpButton: "Đăng ký",
+    alreadyHaveAccount: "Đã có tài khoản?",
+    signIn: "Đăng nhập ngay",
+    passwordMismatch: "Mật khẩu không khớp",
   },
   en: {
     // Navigation
@@ -200,6 +209,15 @@ export const translations = {
     loginButton: "Sign In",
     noAccount: "Don't have an account?",
     signUp: "Sign up now",
+    
+    // Sign Up
+    signUpTitle: "Sign Up",
+    signUpSubtitle: "Create a new account to get started",
+    confirmPassword: "Confirm Password",
+    signUpButton: "Sign Up",
+    alreadyHaveAccount: "Already have an account?",
+    signIn: "Sign in now",
+    passwordMismatch: "Passwords do not match",
   },
 };
 
