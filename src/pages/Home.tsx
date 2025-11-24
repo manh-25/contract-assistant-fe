@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { FileCheck, FileSearch, FolderOpen, ArrowRight } from "lucide-react";
 import { Language } from "@/components/LanguageSwitcher";
 import { useTranslation } from "@/lib/translations";
@@ -109,6 +110,37 @@ export const Home = ({ language }: HomeProps) => {
                 );
               })}
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section className="py-20 bg-muted/30">
+        <div className="container mx-auto px-4">
+          <div className="max-w-3xl mx-auto">
+            <h2 className="text-3xl font-bold text-center mb-12">{t.faqTitle}</h2>
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="item-1">
+                <AccordionTrigger className="text-left">{t.faqQuestion1}</AccordionTrigger>
+                <AccordionContent>{t.faqAnswer1}</AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="item-2">
+                <AccordionTrigger className="text-left">{t.faqQuestion2}</AccordionTrigger>
+                <AccordionContent>{t.faqAnswer2}</AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="item-3">
+                <AccordionTrigger className="text-left">{t.faqQuestion3}</AccordionTrigger>
+                <AccordionContent>{t.faqAnswer3}</AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="item-4">
+                <AccordionTrigger className="text-left">{t.faqQuestion4}</AccordionTrigger>
+                <AccordionContent>{t.faqAnswer4}</AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="item-5">
+                <AccordionTrigger className="text-left">{t.faqQuestion5}</AccordionTrigger>
+                <AccordionContent>{t.faqAnswer5}</AccordionContent>
+              </AccordionItem>
+            </Accordion>
           </div>
         </div>
       </section>
