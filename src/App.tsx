@@ -12,6 +12,7 @@ import QuickReview from "./pages/QuickReview";
 import DeepAnalysis from "./pages/DeepAnalysis";
 import Templates from "./pages/Templates";
 import CreateContract from "./pages/CreateContract";
+import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,6 +34,7 @@ const App = () => {
             <Route path="/deep-analysis" element={<DeepAnalysis language={language} />} />
             <Route path="/templates" element={<Templates language={language} />} />
             <Route path="/create" element={<CreateContract language={language} />} />
+            <Route path="/login" element={<Login language={language} />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

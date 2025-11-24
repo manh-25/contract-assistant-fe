@@ -78,6 +78,28 @@ export const translations = {
     edit: "Chỉnh sửa",
     download: "Tải xuống",
     upload: "Tải lên",
+    
+    // FAQ
+    faqTitle: "Câu hỏi thường gặp",
+    faqQuestion1: "AGREEME là gì?",
+    faqAnswer1: "AGREEME là nền tảng trợ lý hợp đồng thông minh sử dụng AI để giúp bạn phân tích, đánh giá và tạo các hợp đồng chuyên nghiệp một cách nhanh chóng và chính xác.",
+    faqQuestion2: "Tôi có thể sử dụng AGREEME cho mục đích gì?",
+    faqAnswer2: "Bạn có thể sử dụng AGREEME để: review nhanh hợp đồng, phân tích chuyên sâu các điều khoản, tạo hợp đồng mới từ template, và chỉnh sửa hợp đồng dựa trên đề xuất của AI.",
+    faqQuestion3: "AGREEME có hỗ trợ ngôn ngữ nào?",
+    faqAnswer3: "AGREEME hỗ trợ tiếng Việt và tiếng Anh, giúp bạn làm việc với hợp đồng bằng cả hai ngôn ngữ một cách dễ dàng.",
+    faqQuestion4: "Tính năng phân tích chuyên sâu hoạt động như thế nào?",
+    faqAnswer4: "Tính năng phân tích chuyên sâu sử dụng AI để đánh giá từng điều khoản trong hợp đồng, phân loại mức độ rủi ro (an toàn, cảnh báo, nguy hiểm) và đưa ra các đề xuất chỉnh sửa cụ thể.",
+    faqQuestion5: "Tôi có thể chỉnh sửa hợp đồng trực tiếp không?",
+    faqAnswer5: "Có, bạn có thể chỉnh sửa hợp đồng trực tiếp trên cửa sổ soạn thảo với các tùy chọn lưu, reset, xóa và xuất file.",
+    
+    // Login
+    loginTitle: "Đăng nhập",
+    loginSubtitle: "Đăng nhập để truy cập đầy đủ tính năng",
+    email: "Email",
+    password: "Mật khẩu",
+    loginButton: "Đăng nhập",
+    noAccount: "Chưa có tài khoản?",
+    signUp: "Đăng ký ngay",
   },
   en: {
     // Navigation
@@ -156,6 +178,28 @@ export const translations = {
     edit: "Edit",
     download: "Download",
     upload: "Upload",
+    
+    // FAQ
+    faqTitle: "Frequently Asked Questions",
+    faqQuestion1: "What is AGREEME?",
+    faqAnswer1: "AGREEME is an intelligent contract assistant platform that uses AI to help you analyze, evaluate, and create professional contracts quickly and accurately.",
+    faqQuestion2: "What can I use AGREEME for?",
+    faqAnswer2: "You can use AGREEME to: quickly review contracts, perform deep analysis of clauses, create new contracts from templates, and modify contracts based on AI suggestions.",
+    faqQuestion3: "What languages does AGREEME support?",
+    faqAnswer3: "AGREEME supports both Vietnamese and English, making it easy to work with contracts in both languages.",
+    faqQuestion4: "How does the deep analysis feature work?",
+    faqAnswer4: "The deep analysis feature uses AI to evaluate each clause in the contract, categorizes risk levels (safe, warning, danger), and provides specific editing suggestions.",
+    faqQuestion5: "Can I edit contracts directly?",
+    faqAnswer5: "Yes, you can edit contracts directly in the editor window with options to save, reset, delete, and export files.",
+    
+    // Login
+    loginTitle: "Login",
+    loginSubtitle: "Sign in to access all features",
+    email: "Email",
+    password: "Password",
+    loginButton: "Sign In",
+    noAccount: "Don't have an account?",
+    signUp: "Sign up now",
   },
 };
 

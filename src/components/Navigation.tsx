@@ -20,6 +20,7 @@ export const Navigation = ({ language, onLanguageChange }: NavigationProps) => {
     { to: "/deep-analysis", label: t.deepAnalysis, icon: FileSearch },
     { to: "/templates", label: t.templates, icon: FolderOpen },
     { to: "/create", label: t.createContract, icon: PenTool },
+    { to: "/login", label: t.loginTitle, icon: FileText },
   ];
 
   return (
