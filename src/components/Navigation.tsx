@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { FileText, FileSearch, FileCheck, FolderOpen, PenTool } from "lucide-react";
+import { FileText, FileSearch, FileCheck, FolderOpen, User } from "lucide-react";
 import { Language, LanguageSwitcher } from "./LanguageSwitcher";
 import { useTranslation } from "@/lib/translations";
 
@@ -14,13 +14,10 @@ export const Navigation = ({ language, onLanguageChange }: NavigationProps) => {
   const t = useTranslation(language);
   
   const links = [
-    { to: "/", label: t.home, icon: FileText },
-    { to: "/dashboard", label: t.dashboard, icon: FileText },
     { to: "/quick-review", label: t.quickReview, icon: FileCheck },
     { to: "/deep-analysis", label: t.deepAnalysis, icon: FileSearch },
     { to: "/templates", label: t.templates, icon: FolderOpen },
-    { to: "/create", label: t.createContract, icon: PenTool },
-    { to: "/login", label: t.loginTitle, icon: FileText },
+    { to: "/profile", label: t.profileTitle || "Hồ sơ", icon: User },
   ];
 
   return (
