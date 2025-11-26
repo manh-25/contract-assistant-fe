@@ -26,15 +26,13 @@ export const Navigation = ({ language, onLanguageChange }: NavigationProps) => {
   return (
     <nav className="sticky top-0 z-50 bg-primary border-b border-primary-light shadow-lg">
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
-          <div className="flex-1" />
-          
-          <Link to="/" className="flex items-center gap-2 text-primary-foreground font-bold text-xl">
+        <div className="flex items-center h-16">
+          <Link to="/" className="flex items-center gap-2 text-primary-foreground font-bold text-xl mr-8">
             <FileText className="w-6 h-6" />
             AGREEME
           </Link>
           
-          <div className="flex-1 flex justify-end gap-2">
+          <div className="flex-1 flex items-center justify-between gap-2">
             <div className="hidden md:flex items-center gap-1">
               {links.map((link) => {
                 const Icon = link.icon;
