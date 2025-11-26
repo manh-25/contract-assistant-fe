@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { FileText, Eye } from "lucide-react";
 import { Language } from "@/components/LanguageSwitcher";
 import { useTranslation } from "@/lib/translations";
@@ -51,6 +53,7 @@ const templates = [
 export const Templates = ({ language }: TemplatesProps) => {
   const t = useTranslation(language);
   const navigate = useNavigate();
+  const [previewTemplate, setPreviewTemplate] = useState<typeof templates[0] | null>(null);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -76,7 +79,11 @@ export const Templates = ({ language }: TemplatesProps) => {
                     {language === "vi" ? template.description : template.descriptionEn}
                   </p>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setPreviewTemplate(template)}
+                    >
                       <Eye className="w-4 h-4 mr-1" />
                       {t.viewTemplate}
                     </Button>
@@ -93,6 +100,74 @@ export const Templates = ({ language }: TemplatesProps) => {
           ))}
         </div>
       </div>
+
+      {/* Preview Dialog */}
+      <Dialog open={!!previewTemplate} onOpenChange={() => setPreviewTemplate(null)}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {previewTemplate && (language === "vi" ? previewTemplate.name : previewTemplate.nameEn)}
+            </DialogTitle>
+            <DialogDescription>
+              {previewTemplate && (language === "vi" ? previewTemplate.description : previewTemplate.descriptionEn)}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            <div className="bg-muted p-6 rounded-lg">
+              <h3 className="font-semibold mb-4">
+                {language === "vi" ? "Nội dung mẫu hợp đồng" : "Contract Template Content"}
+              </h3>
+              <div className="space-y-4 text-sm">
+                <section>
+                  <h4 className="font-medium mb-2">
+                    {language === "vi" ? "Điều 1: Đối tượng hợp đồng" : "Article 1: Contract Subject"}
+                  </h4>
+                  <p className="text-muted-foreground">
+                    {language === "vi" 
+                      ? "Mô tả chi tiết về đối tượng của hợp đồng, bao gồm các thông tin cơ bản và điều khoản liên quan..."
+                      : "Detailed description of the contract subject, including basic information and related terms..."}
+                  </p>
+                </section>
+                <section>
+                  <h4 className="font-medium mb-2">
+                    {language === "vi" ? "Điều 2: Quyền và nghĩa vụ các bên" : "Article 2: Rights and Obligations"}
+                  </h4>
+                  <p className="text-muted-foreground">
+                    {language === "vi"
+                      ? "Quy định rõ ràng về quyền lợi và trách nhiệm của từng bên tham gia hợp đồng..."
+                      : "Clear provisions on the rights and responsibilities of each party to the contract..."}
+                  </p>
+                </section>
+                <section>
+                  <h4 className="font-medium mb-2">
+                    {language === "vi" ? "Điều 3: Thời hạn và chấm dứt" : "Article 3: Term and Termination"}
+                  </h4>
+                  <p className="text-muted-foreground">
+                    {language === "vi"
+                      ? "Xác định thời gian có hiệu lực và các điều kiện chấm dứt hợp đồng..."
+                      : "Defines the effective period and conditions for contract termination..."}
+                  </p>
+                </section>
+              </div>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setPreviewTemplate(null)}>
+                {t.cancel}
+              </Button>
+              <Button
+                onClick={() => {
+                  if (previewTemplate) {
+                    navigate(`/create?template=${previewTemplate.id}`);
+                    setPreviewTemplate(null);
+                  }
+                }}
+              >
+                {t.useTemplate}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
