@@ -100,6 +100,14 @@ export const translations = {
     loginButton: "Đăng nhập",
     noAccount: "Chưa có tài khoản?",
     signUp: "Đăng ký ngay",
+    forgotPassword: "Quên mật khẩu?",
+    
+    // Forgot Password
+    forgotPasswordTitle: "Quên mật khẩu",
+    forgotPasswordSubtitle: "Nhập email của bạn để nhận link đặt lại mật khẩu",
+    sendResetLink: "Gửi link đặt lại",
+    backToLogin: "Quay lại đăng nhập",
+    resetLinkSent: "Link đặt lại mật khẩu đã được gửi đến email của bạn",
     
     // Sign Up
     signUpTitle: "Đăng ký",
@@ -209,6 +217,14 @@ export const translations = {
     loginButton: "Sign In",
     noAccount: "Don't have an account?",
     signUp: "Sign up now",
+    forgotPassword: "Forgot password?",
+    
+    // Forgot Password
+    forgotPasswordTitle: "Forgot Password",
+    forgotPasswordSubtitle: "Enter your email to receive a password reset link",
+    sendResetLink: "Send Reset Link",
+    backToLogin: "Back to login",
+    resetLinkSent: "Password reset link has been sent to your email",
     
     // Sign Up
     signUpTitle: "Sign Up",

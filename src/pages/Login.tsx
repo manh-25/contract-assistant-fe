@@ -58,6 +58,15 @@ export const Login = ({ language }: LoginProps) => {
               {t.loginButton}
             </Button>
           </form>
+          <div className="mt-4 text-center">
+            <Button
+              variant="link"
+              className="p-0 h-auto text-sm"
+              onClick={() => navigate("/forgot-password")}
+            >
+              {t.forgotPassword}
+            </Button>
+          </div>
           <div className="mt-6 text-center text-sm">
             <span className="text-muted-foreground">{t.noAccount} </span>
             <Button
