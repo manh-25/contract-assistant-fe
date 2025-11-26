@@ -15,6 +15,7 @@ import CreateContract from "./pages/CreateContract";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import ForgotPassword from "./pages/ForgotPassword";
+import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -39,6 +40,7 @@ const App = () => {
             <Route path="/login" element={<Login language={language} />} />
             <Route path="/signup" element={<Signup language={language} />} />
             <Route path="/forgot-password" element={<ForgotPassword language={language} />} />
+            <Route path="/profile" element={<Profile language={language} />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
