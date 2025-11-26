@@ -147,6 +147,8 @@ export const translations = {
     profileUpdatedDesc: "Thông tin cá nhân đã được cập nhật",
     passwordChanged: "Đổi mật khẩu thành công",
     passwordChangedDesc: "Mật khẩu của bạn đã được cập nhật",
+    uploadAvatar: "Tải ảnh đại diện",
+    avatarUpdated: "Cập nhật ảnh đại diện thành công",
   },
   en: {
     // Navigation
@@ -294,6 +296,8 @@ export const translations = {
     profileUpdatedDesc: "Your personal information has been updated",
     passwordChanged: "Password Changed Successfully",
     passwordChangedDesc: "Your password has been updated",
+    uploadAvatar: "Upload Avatar",
+    avatarUpdated: "Avatar Updated Successfully",
   },
 };
 
