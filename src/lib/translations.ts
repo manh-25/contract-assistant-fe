@@ -6,13 +6,13 @@ export const translations = {
     home: "Trang chủ",
     quickReview: "Review nhanh",
     deepAnalysis: "Phân tích chuyên sâu",
-    templates: "Template hợp đồng",
+    templates: "Templates",
     createContract: "Tạo hợp đồng",
     dashboard: "Bảng điều khiển",
     
     // Home page
-    heroTitle: "Trợ lý hợp đồng thông minh",
-    heroSubtitle: "Phân tích, tạo và quản lý hợp đồng với sức mạnh AI",
+    heroTitle: "AGREEME",
+    heroSubtitle: "Trợ lý hợp đồng thông minh - Phân tích, tạo và quản lý hợp đồng",
     heroDescription: "Giải pháp toàn diện cho cá nhân và doanh nghiệp nhỏ",
     getStarted: "Bắt đầu ngay",
     learnMore: "Tìm hiểu thêm",
@@ -155,13 +155,13 @@ export const translations = {
     home: "Home",
     quickReview: "Quick Review",
     deepAnalysis: "Deep Analysis",
-    templates: "Contract Templates",
+    templates: "Templates",
     createContract: "Create Contract",
     dashboard: "Dashboard",
     
     // Home page
-    heroTitle: "Smart Contract Assistant",
-    heroSubtitle: "Analyze, create and manage contracts with AI power",
+    heroTitle: "AGREEME",
+    heroSubtitle: "Smart Contract Assistant - Analyze, create and manage contracts with AI power",
     heroDescription: "Complete solution for individuals and small businesses",
     getStarted: "Get Started",
     learnMore: "Learn More",
@@ -229,7 +229,7 @@ export const translations = {
     upload: "Upload",
     
     // FAQ
-    faqTitle: "Frequently Asked Questions",
+    faqTitle: "FAQs",
     faqQuestion1: "What is AGREEME?",
     faqAnswer1: "AGREEME is an intelligent contract assistant platform that uses AI to help you analyze, evaluate, and create professional contracts quickly and accurately.",
     faqQuestion2: "What can I use AGREEME for?",
