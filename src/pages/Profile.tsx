@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +9,9 @@ import { useTranslation } from "@/lib/translations";
 import { Language } from "@/components/LanguageSwitcher";
 import { useToast } from "@/hooks/use-toast";
 import { User, Settings, TrendingUp, FileText, FileSearch, PenTool, Upload, Camera } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 
 interface ProfileProps {
   language: Language;
@@ -17,12 +20,14 @@ interface ProfileProps {
 const Profile = ({ language }: ProfileProps) => {
   const t = useTranslation(language);
   const { toast } = useToast();
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [profile, setProfile] = useState({
-    fullName: "Nguyễn Văn A",
-    email: "user@example.com",
-    phone: "+84 123 456 789",
+    fullName: "",
+    email: "",
+    phone: "",
     avatar: "",
   });
 
@@ -31,6 +36,40 @@ const Profile = ({ language }: ProfileProps) => {
     new: "",
     confirm: "",
   });
+
+  const [loadingProfile, setLoadingProfile] = useState(true);
+
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate("/login");
+    }
+  }, [loading, user, navigate]);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single();
+
+      if (error) {
+        console.error("Error fetching profile:", error);
+      } else if (data) {
+        setProfile({
+          fullName: data.full_name || "",
+          email: user.email || "",
+          phone: "",
+          avatar: data.avatar_url || "",
+        });
+      }
+      setLoadingProfile(false);
+    };
+
+    fetchProfile();
+  }, [user]);
 
   const stats = [
     { label: t.totalContracts, value: "12", icon: FileText, color: "text-accent" },
@@ -56,14 +95,32 @@ const Profile = ({ language }: ProfileProps) => {
     },
   ];
 
-  const handleProfileSave = () => {
-    toast({
-      title: t.profileUpdated || "Cập nhật thông tin thành công",
-      description: t.profileUpdatedDesc || "Thông tin cá nhân đã được cập nhật",
-    });
+  const handleProfileSave = async () => {
+    if (!user) return;
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        full_name: profile.fullName,
+        avatar_url: profile.avatar,
+      })
+      .eq("id", user.id);
+
+    if (error) {
+      toast({
+        title: language === "vi" ? "Lỗi" : "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: t.profileUpdated || "Cập nhật thông tin thành công",
+        description: t.profileUpdatedDesc || "Thông tin cá nhân đã được cập nhật",
+      });
+    }
   };
 
-  const handlePasswordChange = () => {
+  const handlePasswordChange = async () => {
     if (passwords.new !== passwords.confirm) {
       toast({
         title: t.passwordMismatch,
@@ -71,26 +128,76 @@ const Profile = ({ language }: ProfileProps) => {
       });
       return;
     }
-    toast({
-      title: t.passwordChanged || "Đổi mật khẩu thành công",
-      description: t.passwordChangedDesc || "Mật khẩu của bạn đã được cập nhật",
+
+    if (passwords.new.length < 6) {
+      toast({
+        title: language === "vi" ? "Mật khẩu quá ngắn" : "Password too short",
+        description: language === "vi" ? "Mật khẩu phải có ít nhất 6 ký tự" : "Password must be at least 6 characters",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const { error } = await supabase.auth.updateUser({
+      password: passwords.new,
     });
-    setPasswords({ current: "", new: "", confirm: "" });
+
+    if (error) {
+      toast({
+        title: language === "vi" ? "Lỗi" : "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: t.passwordChanged || "Đổi mật khẩu thành công",
+        description: t.passwordChangedDesc || "Mật khẩu của bạn đã được cập nhật",
+      });
+      setPasswords({ current: "", new: "", confirm: "" });
+    }
   };
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
+    if (file && user) {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setProfile({ ...profile, avatar: reader.result as string });
-        toast({
-          title: t.avatarUpdated || "Cập nhật ảnh đại diện thành công",
-        });
+      reader.onloadend = async () => {
+        const newAvatar = reader.result as string;
+        setProfile({ ...profile, avatar: newAvatar });
+        
+        // Update in database
+        const { error } = await supabase
+          .from("profiles")
+          .update({ avatar_url: newAvatar })
+          .eq("id", user.id);
+
+        if (error) {
+          toast({
+            title: language === "vi" ? "Lỗi" : "Error",
+            description: error.message,
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: t.avatarUpdated || "Cập nhật ảnh đại diện thành công",
+          });
+        }
       };
       reader.readAsDataURL(file);
     }
   };
+
+  if (loading || loadingProfile) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-muted-foreground">{language === "vi" ? "Đang tải..." : "Loading..."}</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-background">

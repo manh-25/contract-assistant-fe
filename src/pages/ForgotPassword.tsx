@@ -6,30 +6,71 @@ import { Label } from "@/components/ui/label";
 import { Language } from "@/components/LanguageSwitcher";
 import { useTranslation } from "@/lib/translations";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { z } from "zod";
 
 interface ForgotPasswordProps {
   language: Language;
 }
 
+const emailSchema = z.object({
+  email: z.string().email(),
+});
+
 export const ForgotPassword = ({ language }: ForgotPasswordProps) => {
   const t = useTranslation(language);
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [email, setEmail] = useState("");
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement actual password reset logic
-    console.log("Password reset requested for:", email);
-    setIsSubmitted(true);
-    toast.success(t.resetLinkSent);
-    
-    // Redirect to login after 3 seconds
-    setTimeout(() => {
-      navigate("/login");
-    }, 3000);
+    setLoading(true);
+
+    try {
+      const validation = emailSchema.safeParse({ email });
+      if (!validation.success) {
+        toast({
+          title: language === "vi" ? "Email không hợp lệ" : "Invalid email",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/`,
+      });
+
+      if (error) {
+        toast({
+          title: language === "vi" ? "Lỗi" : "Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        setIsSubmitted(true);
+        toast({
+          title: t.resetLinkSent,
+        });
+        
+        setTimeout(() => {
+          navigate("/login");
+        }, 3000);
+      }
+    } catch (error: any) {
+      toast({
+        title: language === "vi" ? "Lỗi" : "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -53,8 +94,8 @@ export const ForgotPassword = ({ language }: ForgotPasswordProps) => {
                   required
                 />
               </div>
-              <Button type="submit" className="w-full" size="lg">
-                {t.sendResetLink}
+              <Button type="submit" className="w-full" size="lg" disabled={loading}>
+                {loading ? (language === "vi" ? "Đang gửi..." : "Sending...") : t.sendResetLink}
               </Button>
             </form>
           ) : (
