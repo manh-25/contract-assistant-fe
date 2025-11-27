@@ -13,7 +13,7 @@ interface TemplatesProps {
 
 const templates = [
   {
-    id: "1",
+    id: "rental",
     name: "Hợp đồng thuê nhà",
     nameEn: "Rental Agreement",
     description: "Template chuẩn cho hợp đồng thuê nhà ở",
@@ -22,7 +22,7 @@ const templates = [
     categoryEn: "Real Estate",
   },
   {
-    id: "2",
+    id: "employment",
     name: "Hợp đồng lao động",
     nameEn: "Employment Contract",
     description: "Hợp đồng lao động theo quy định pháp luật Việt Nam",
@@ -31,22 +31,13 @@ const templates = [
     categoryEn: "HR",
   },
   {
-    id: "3",
+    id: "sales",
     name: "Hợp đồng mua bán",
     nameEn: "Sales Agreement",
     description: "Template cho các giao dịch mua bán hàng hóa",
     descriptionEn: "Template for goods sales transactions",
     category: "Thương mại",
     categoryEn: "Commercial",
-  },
-  {
-    id: "4",
-    name: "Hợp đồng dịch vụ",
-    nameEn: "Service Agreement",
-    description: "Hợp đồng cung cấp dịch vụ chuyên nghiệp",
-    descriptionEn: "Professional service provision contract",
-    category: "Dịch vụ",
-    categoryEn: "Services",
   },
 ];
 
@@ -89,7 +80,7 @@ export const Templates = ({ language }: TemplatesProps) => {
                     </Button>
                     <Button
                       size="sm"
-                      onClick={() => navigate(`/create?template=${template.id}`)}
+                      onClick={() => navigate(`/create/${template.id}`)}
                     >
                       {t.useTemplate}
                     </Button>
@@ -157,7 +148,7 @@ export const Templates = ({ language }: TemplatesProps) => {
               <Button
                 onClick={() => {
                   if (previewTemplate) {
-                    navigate(`/create?template=${previewTemplate.id}`);
+                    navigate(`/create/${previewTemplate.id}`);
                     setPreviewTemplate(null);
                   }
                 }}

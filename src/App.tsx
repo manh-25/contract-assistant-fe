@@ -36,7 +36,7 @@ const App = () => {
             <Route path="/quick-review" element={<QuickReview language={language} />} />
             <Route path="/deep-analysis" element={<DeepAnalysis language={language} />} />
             <Route path="/templates" element={<Templates language={language} />} />
-            <Route path="/create" element={<CreateContract language={language} />} />
+            <Route path="/create/:templateId?" element={<CreateContract language={language} />} />
             <Route path="/login" element={<Login language={language} />} />
             <Route path="/signup" element={<Signup language={language} />} />
             <Route path="/forgot-password" element={<ForgotPassword language={language} />} />
