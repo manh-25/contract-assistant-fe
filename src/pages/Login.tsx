@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -6,21 +6,73 @@ import { Label } from "@/components/ui/label";
 import { Language } from "@/components/LanguageSwitcher";
 import { useTranslation } from "@/lib/translations";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+import { z } from "zod";
 
 interface LoginProps {
   language: Language;
 }
 
+const loginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(6),
+});
+
 export const Login = ({ language }: LoginProps) => {
   const t = useTranslation(language);
   const navigate = useNavigate();
+  const { signIn, user } = useAuth();
+  const { toast } = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (user) {
+      navigate("/");
+    }
+  }, [user, navigate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement actual login logic
-    console.log("Login attempt:", { email, password });
+    setLoading(true);
+
+    try {
+      const validation = loginSchema.safeParse({ email, password });
+      if (!validation.success) {
+        toast({
+          title: language === "vi" ? "Lỗi xác thực" : "Validation error",
+          description: language === "vi" ? "Vui lòng kiểm tra email và mật khẩu" : "Please check your email and password",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
+      const { error } = await signIn(email, password);
+
+      if (error) {
+        toast({
+          title: language === "vi" ? "Đăng nhập thất bại" : "Login failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: language === "vi" ? "Đăng nhập thành công" : "Login successful",
+        });
+        navigate("/");
+      }
+    } catch (error: any) {
+      toast({
+        title: language === "vi" ? "Lỗi" : "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -54,8 +106,8 @@ export const Login = ({ language }: LoginProps) => {
                 required
               />
             </div>
-            <Button type="submit" className="w-full" size="lg">
-              {t.loginButton}
+            <Button type="submit" className="w-full" size="lg" disabled={loading}>
+              {loading ? (language === "vi" ? "Đang đăng nhập..." : "Logging in...") : t.loginButton}
             </Button>
           </form>
           <div className="mt-4 text-center">
