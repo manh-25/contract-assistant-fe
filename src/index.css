@@ -128,3 +128,21 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1; /* Màu xám nhạt lúc bình thường */
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #496DFF; /* Hover vào thì chuyển màu xanh Brand */
+}

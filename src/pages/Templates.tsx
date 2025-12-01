@@ -1,164 +1,145 @@
-import { useState } from "react";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { FileText, Eye } from "lucide-react";
-import { Language } from "@/components/LanguageSwitcher";
-import { useTranslation } from "@/lib/translations";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { 
+  FileText, Plus, Search, MoreHorizontal, Edit, Trash2, Play 
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
-interface TemplatesProps {
-  language: Language;
+interface Template {
+  id: number;
+  title: string;
+  category: string;
+  lastModified: string;
+  author: string;
 }
 
-const templates = [
-  {
-    id: "rental",
-    name: "Hợp đồng thuê nhà",
-    nameEn: "Rental Agreement",
-    description: "Template chuẩn cho hợp đồng thuê nhà ở",
-    descriptionEn: "Standard template for residential rental agreement",
-    category: "Bất động sản",
-    categoryEn: "Real Estate",
-  },
-  {
-    id: "employment",
-    name: "Hợp đồng lao động",
-    nameEn: "Employment Contract",
-    description: "Hợp đồng lao động theo quy định pháp luật Việt Nam",
-    descriptionEn: "Employment contract according to Vietnamese labor law",
-    category: "Nhân sự",
-    categoryEn: "HR",
-  },
-  {
-    id: "sales",
-    name: "Hợp đồng mua bán",
-    nameEn: "Sales Agreement",
-    description: "Template cho các giao dịch mua bán hàng hóa",
-    descriptionEn: "Template for goods sales transactions",
-    category: "Thương mại",
-    categoryEn: "Commercial",
-  },
-];
-
-export const Templates = ({ language }: TemplatesProps) => {
-  const t = useTranslation(language);
+const Templates = () => {
   const navigate = useNavigate();
-  const [previewTemplate, setPreviewTemplate] = useState<typeof templates[0] | null>(null);
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // --- LOAD TEMPLATES (Giả lập lấy từ LocalStorage hoặc API) ---
+  useEffect(() => {
+    // Dữ liệu mẫu ban đầu (những cái user đã lưu từ Library)
+    const initialData = [
+      { id: 1, title: "Hợp đồng Lao động", category: "Nhân sự", lastModified: "2 hours ago", author: "Agreeme" },
+      { id: 2, title: "Hợp đồng Thuê nhà", category: "Bất động sản", lastModified: "1 day ago", author: "Admin" },
+    ];
+    
+    // Kiểm tra localStorage xem có template nào user mới lưu không
+    const savedTemplates = localStorage.getItem('user_templates');
+    if (savedTemplates) {
+        setTemplates(JSON.parse(savedTemplates));
+    } else {
+        setTemplates(initialData);
+        localStorage.setItem('user_templates', JSON.stringify(initialData));
+    }
+  }, []);
+
+  // --- HÀM XÓA TEMPLATE ---
+  const handleDelete = (id: number) => {
+    const newTemplates = templates.filter(t => t.id !== id);
+    setTemplates(newTemplates);
+    localStorage.setItem('user_templates', JSON.stringify(newTemplates));
+  };
+
+  // --- HÀM TẠO MỚI ---
+  const handleCreateNew = () => {
+    // Chuyển hướng sang trang soạn thảo với mode = 'new'
+    navigate('/templates/create?mode=new');
+  };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold text-foreground mb-2">{t.templates}</h1>
-        <p className="text-muted-foreground mb-8">{t.templatesDesc}</p>
+    <div className="p-6 max-w-[1400px] mx-auto font-sans text-slate-700">
+      
+      {/* HEADER */}
+      <div className="flex justify-between items-center mb-6">
+        <div>
+            <h1 className="text-2xl font-bold text-[#1e1b4b]">My Templates</h1>
+            <p className="text-slate-500 text-sm mt-1">Manage your custom templates and saved forms.</p>
+        </div>
+        <Button onClick={handleCreateNew} className="bg-[#4F46E5] hover:bg-blue-700 text-white gap-2">
+            <Plus size={18} /> Create Template
+        </Button>
+      </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {templates.map((template) => (
-            <Card key={template.id} className="p-6 hover:shadow-xl transition-all">
-              <div className="flex items-start gap-4">
-                <div className="p-3 bg-primary/10 rounded-lg">
-                  <FileText className="w-6 h-6 text-primary" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-lg font-bold mb-1">
-                    {language === "vi" ? template.name : template.nameEn}
-                  </h3>
-                  <p className="text-sm text-primary mb-2">
-                    {language === "vi" ? template.category : template.categoryEn}
-                  </p>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    {language === "vi" ? template.description : template.descriptionEn}
-                  </p>
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => setPreviewTemplate(template)}
-                    >
-                      <Eye className="w-4 h-4 mr-1" />
-                      {t.viewTemplate}
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={() => navigate(`/create/${template.id}`)}
-                    >
-                      {t.useTemplate}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          ))}
+      {/* TOOLBAR */}
+      <div className="flex items-center gap-4 mb-6 bg-white p-2 rounded-lg border border-slate-200">
+        <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+            <Input 
+                placeholder="Search templates..." 
+                className="pl-9 border-none shadow-none focus-visible:ring-0" 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+            />
         </div>
       </div>
 
-      {/* Preview Dialog */}
-      <Dialog open={!!previewTemplate} onOpenChange={() => setPreviewTemplate(null)}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {previewTemplate && (language === "vi" ? previewTemplate.name : previewTemplate.nameEn)}
-            </DialogTitle>
-            <DialogDescription>
-              {previewTemplate && (language === "vi" ? previewTemplate.description : previewTemplate.descriptionEn)}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 mt-4">
-            <div className="bg-muted p-6 rounded-lg">
-              <h3 className="font-semibold mb-4">
-                {language === "vi" ? "Nội dung mẫu hợp đồng" : "Contract Template Content"}
-              </h3>
-              <div className="space-y-4 text-sm">
-                <section>
-                  <h4 className="font-medium mb-2">
-                    {language === "vi" ? "Điều 1: Đối tượng hợp đồng" : "Article 1: Contract Subject"}
-                  </h4>
-                  <p className="text-muted-foreground">
-                    {language === "vi" 
-                      ? "Mô tả chi tiết về đối tượng của hợp đồng, bao gồm các thông tin cơ bản và điều khoản liên quan..."
-                      : "Detailed description of the contract subject, including basic information and related terms..."}
-                  </p>
-                </section>
-                <section>
-                  <h4 className="font-medium mb-2">
-                    {language === "vi" ? "Điều 2: Quyền và nghĩa vụ các bên" : "Article 2: Rights and Obligations"}
-                  </h4>
-                  <p className="text-muted-foreground">
-                    {language === "vi"
-                      ? "Quy định rõ ràng về quyền lợi và trách nhiệm của từng bên tham gia hợp đồng..."
-                      : "Clear provisions on the rights and responsibilities of each party to the contract..."}
-                  </p>
-                </section>
-                <section>
-                  <h4 className="font-medium mb-2">
-                    {language === "vi" ? "Điều 3: Thời hạn và chấm dứt" : "Article 3: Term and Termination"}
-                  </h4>
-                  <p className="text-muted-foreground">
-                    {language === "vi"
-                      ? "Xác định thời gian có hiệu lực và các điều kiện chấm dứt hợp đồng..."
-                      : "Defines the effective period and conditions for contract termination..."}
-                  </p>
-                </section>
-              </div>
-            </div>
-            <div className="flex gap-2 justify-end">
-              <Button variant="outline" onClick={() => setPreviewTemplate(null)}>
-                {t.cancel}
-              </Button>
-              <Button
-                onClick={() => {
-                  if (previewTemplate) {
-                    navigate(`/create/${previewTemplate.id}`);
-                    setPreviewTemplate(null);
-                  }
-                }}
-              >
-                {t.useTemplate}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* TABLE LIST */}
+      <div className="bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden">
+        <table className="w-full text-left text-sm">
+            <thead className="bg-slate-50 border-b border-slate-200">
+                <tr>
+                    <th className="px-6 py-4 font-semibold text-slate-600">Template Name</th>
+                    <th className="px-6 py-4 font-semibold text-slate-600 w-40">Category</th>
+                    <th className="px-6 py-4 font-semibold text-slate-600 w-40">Author</th>
+                    <th className="px-6 py-4 font-semibold text-slate-600 w-40">Last Modified</th>
+                    <th className="px-6 py-4 font-semibold text-slate-600 w-20 text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+                {templates.map((template) => (
+                    <tr key={template.id} className="hover:bg-slate-50 transition-colors group">
+                        <td className="px-6 py-4">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 bg-blue-50 text-[#4F46E5] rounded flex items-center justify-center">
+                                    <FileText size={16} />
+                                </div>
+                                <span className="font-medium text-slate-800 cursor-pointer hover:text-[#4F46E5]" onClick={() => navigate(`/templates/create?id=${template.id}`)}>
+                                    {template.title}
+                                </span>
+                            </div>
+                        </td>
+                        <td className="px-6 py-4">
+                            <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded text-xs font-medium">
+                                {template.category}
+                            </span>
+                        </td>
+                        <td className="px-6 py-4 text-slate-500">{template.author}</td>
+                        <td className="px-6 py-4 text-slate-500">{template.lastModified}</td>
+                        <td className="px-6 py-4 text-right">
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <button className="text-slate-400 hover:text-slate-600 p-1 rounded hover:bg-slate-200">
+                                        <MoreHorizontal size={18} />
+                                    </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => navigate(`/templates/create?id=${template.id}`)}>
+                                        <Edit className="mr-2 h-4 w-4" /> Edit
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleDelete(template.id)} className="text-red-600">
+                                        <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </td>
+                    </tr>
+                ))}
+            </tbody>
+        </table>
+        {templates.length === 0 && (
+            <div className="p-10 text-center text-slate-400">No templates found. Create one or get from Library.</div>
+        )}
+      </div>
     </div>
   );
 };

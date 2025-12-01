@@ -1,246 +1,187 @@
-import { useState } from "react";
+import { 
+  AlertTriangle, ShieldAlert, AlertCircle, ChevronRight, 
+  Activity, ShieldCheck, TrendingUp
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { UploadCloud, FileText, AlertTriangle, CheckCircle2, XCircle, ArrowRight, Loader2 } from "lucide-react";
-import { Language } from "@/components/LanguageSwitcher";
-import { useTranslation } from "@/lib/translations";
-import { useToast } from "@/hooks/use-toast";
 
-interface QuickReviewProps {
-  language: Language;
-}
-
-export const QuickReview = ({ language }: QuickReviewProps) => {
-  const t = useTranslation(language);
-  const { toast } = useToast();
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [results, setResults] = useState<any>(null);
-  const [dragActive, setDragActive] = useState(false);
-
-  const handleDrag = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
-      setDragActive(false);
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      startAnalysis(e.dataTransfer.files[0]);
-    }
-  };
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) startAnalysis(file);
-  };
-
-  const startAnalysis = (file: File) => {
-    setIsAnalyzing(true);
-    setResults(null); // Reset old results
-
-    // Simulate analysis delay
-    setTimeout(() => {
-      setResults({
-        summary: language === "vi" 
-          ? "Hợp đồng có một số rủi ro cần chú ý trước khi ký kết." 
-          : "The contract contains some risks that require attention before signing.",
-        score: 85,
-        issues: [
-          { 
-            level: "danger", 
-            title: language === "vi" ? "Rủi ro cao" : "High Risk",
-            text: language === "vi" ? "Điều khoản thanh toán không rõ ràng về thời hạn" : "Payment terms are unclear regarding deadlines" 
-          },
-          { 
-            level: "caution", 
-            title: language === "vi" ? "Cảnh báo" : "Caution",
-            text: language === "vi" ? "Phạt vi phạm hợp đồng cao hơn mức thông thường (12%)" : "Penalty for breach is higher than standard (12%)" 
-          },
-          { 
-            level: "safe", 
-            title: language === "vi" ? "An toàn" : "Safe",
-            text: language === "vi" ? "Điều khoản bảo mật thông tin đầy đủ và chặt chẽ" : "Confidentiality clause is comprehensive" 
-          },
-        ],
-      });
-      setIsAnalyzing(false);
-      toast({
-        title: language === "vi" ? "Phân tích hoàn tất" : "Analysis complete",
-        description: language === "vi" ? "Đã tìm thấy các vấn đề trong hợp đồng" : "Issues found in the contract",
-      });
-    }, 2500);
-  };
+// Component Vòng tròn điểm số
+const CircularScore = ({ score }: { score: number }) => {
+  const radius = 28;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (score / 100) * circumference;
+  
+  // Logic màu của vòng tròn: 
+  // Nếu nền Card là màu Xanh (Blue), ta nên để vòng tròn màu Trắng hoặc Vàng cam để nổi bật
+  let color = "#ffffff"; // Mặc định trắng cho nổi trên nền xanh
+  if (score < 50) color = "#fca5a5"; // Đỏ nhạt
+  if (score >= 50 && score < 80) color = "#fbbf24"; // Vàng cam
 
   return (
-    <div className="min-h-screen bg-slate-50 pt-28 pb-12 font-sans text-slate-900">
-      <div className="container mx-auto px-6 max-w-4xl">
-        
-        {/* Header Section */}
-        <div className="text-center mb-10 space-y-4">
-          <h1 className="text-3xl md:text-4xl font-bold text-[#1A1C4B]">
-            {t.quickReview}
-          </h1>
-          <p className="text-slate-500 text-lg max-w-2xl mx-auto">
-            {t.quickReviewDesc}
-          </p>
-        </div>
-
-        {/* Upload Section */}
-        {!results && !isAnalyzing && (
-          <Card className="p-8 shadow-lg border-0 bg-white">
-            <div 
-              className={`p-12 text-center border-2 border-dashed rounded-xl transition-all duration-200 ease-in-out ${
-                dragActive 
-                  ? "border-[#496DFF] bg-blue-50/50" 
-                  : "border-slate-200 hover:border-[#496DFF]/50 hover:bg-slate-50/50"
-              }`}
-              onDragEnter={handleDrag}
-              onDragLeave={handleDrag}
-              onDragOver={handleDrag}
-              onDrop={handleDrop}
-            >
-              <UploadCloud className="w-16 h-16 mx-auto text-slate-400 mb-6" />
-              
-              <h3 className="text-xl font-bold text-[#1A1C4B] mb-2">
-                {t.uploadContract || "Upload your contract"}
-              </h3>
-              <p className="text-slate-500 mb-6">
-                {t.dragAndDrop || "Drag and drop your file here, or click to browse."}
-              </p>
-              
-              <input
-                type="file"
-                accept=".pdf,.doc,.docx"
-                onChange={handleFileUpload}
-                className="hidden"
-                id="file-upload"
-              />
-              <label htmlFor="file-upload">
-                <Button 
-                  className="bg-[#496DFF] hover:bg-[#3b5bdb] text-white rounded-full px-8 font-semibold shadow-md cursor-pointer"
-                  asChild
-                >
-                  <span>{t.upload || "Choose File"}</span>
-                </Button>
-              </label>
-              
-              <p className="text-sm text-slate-400 mt-6">
-                {t.supportedFormats || "Supported: PDF, DOC, DOCX (Max 10MB)"}
-              </p>
-            </div>
-          </Card>
-        )}
-
-        {/* Loading State */}
-        {isAnalyzing && (
-          <Card className="p-12 text-center border-0 shadow-lg bg-white">
-            <div className="flex flex-col items-center justify-center space-y-6">
-              <div className="relative">
-                <div className="w-20 h-20 border-4 border-blue-100 rounded-full animate-pulse"></div>
-                <div className="absolute top-0 left-0 w-20 h-20 border-4 border-[#496DFF] rounded-full animate-spin border-t-transparent"></div>
-                <Loader2 className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-8 h-8 text-[#496DFF]" />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-[#1A1C4B] mb-2">{t.analyzing || "Analyzing Contract..."}</h3>
-                <p className="text-slate-500 animate-pulse">
-                  {language === "vi" ? "AI đang đọc và phân tích các điều khoản..." : "AI is reading and analyzing clauses..."}
-                </p>
-              </div>
-            </div>
-          </Card>
-        )}
-
-        {/* Results Section */}
-        {results && !isAnalyzing && (
-          <div className="space-y-6 animate-in fade-in-50 slide-in-from-bottom-5 duration-500">
-            {/* Score & Summary */}
-            <Card className="border-0 shadow-lg bg-white overflow-hidden">
-              <div className="bg-[#1A1C4B] p-8 text-white flex flex-col md:flex-row items-center gap-8">
-                 <div className="relative">
-                    <svg className="w-24 h-24 transform -rotate-90">
-                      <circle cx="48" cy="48" r="40" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-white/10" />
-                      <circle cx="48" cy="48" r="40" stroke="#496DFF" strokeWidth="8" fill="transparent" strokeDasharray={251.2} strokeDashoffset={251.2 * (1 - results.score / 100)} />
-                    </svg>
-                    <span className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-2xl font-bold">
-                      {results.score}
-                    </span>
-                 </div>
-                 <div className="flex-1 text-center md:text-left">
-                    <h2 className="text-2xl font-bold mb-2">
-                      {language === "vi" ? "Kết quả phân tích" : "Analysis Result"}
-                    </h2>
-                    <p className="text-blue-100/80 leading-relaxed">
-                      {results.summary}
-                    </p>
-                 </div>
-                 <Button 
-                    variant="secondary" 
-                    onClick={() => { setResults(null); setIsAnalyzing(false); }}
-                    className="whitespace-nowrap bg-[#496DFF] text-white hover:bg-[#3b5bdb] border-0"
-                 >
-                    {language === "vi" ? "Tải lên tệp mới" : "Upload New File"}
-                 </Button>
-              </div>
-            </Card>
-
-            {/* Detailed Issues */}
-            <div className="grid gap-4">
-              <h3 className="text-xl font-bold text-[#1A1C4B] mt-4 mb-2 px-1">
-                {language === "vi" ? "Chi tiết các điều khoản" : "Detailed Clauses"}
-              </h3>
-              
-              {results.issues.map((issue: any, idx: number) => (
-                <Card 
-                  key={idx} 
-                  className={`border-l-8 border-0 shadow-sm hover:shadow-md transition-shadow ${
-                    issue.level === "danger" ? "border-l-red-500" :
-                    issue.level === "caution" ? "border-l-amber-500" :
-                    "border-l-emerald-500"
-                  }`}
-                >
-                  <CardContent className="p-6 flex items-start gap-4">
-                    <div className={`p-3 rounded-full shrink-0 ${
-                      issue.level === "danger" ? "bg-red-50 text-red-600" :
-                      issue.level === "caution" ? "bg-amber-50 text-amber-600" :
-                      "bg-emerald-50 text-emerald-600"
-                    }`}>
-                      {issue.level === "danger" ? <XCircle className="w-6 h-6" /> :
-                       issue.level === "caution" ? <AlertTriangle className="w-6 h-6" /> :
-                       <CheckCircle2 className="w-6 h-6" />}
-                    </div>
-                    <div>
-                      <h4 className={`font-bold mb-1 ${
-                        issue.level === "danger" ? "text-red-700" :
-                        issue.level === "caution" ? "text-amber-700" :
-                        "text-emerald-700"
-                      }`}>
-                        {issue.title}
-                      </h4>
-                      <p className="text-slate-600 leading-relaxed">
-                        {issue.text}
-                      </p>
-                    </div>
-                    {issue.level !== "safe" && (
-                      <Button variant="ghost" size="icon" className="ml-auto text-slate-400 hover:text-[#496DFF]">
-                        <ArrowRight className="w-5 h-5" />
-                      </Button>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        )}
+    <div className="relative w-20 h-20 flex items-center justify-center shrink-0">
+      <svg className="transform -rotate-90 w-full h-full drop-shadow-md">
+        {/* Vòng background mờ đi */}
+        <circle cx="40" cy="40" r={radius} stroke="rgba(255,255,255,0.2)" strokeWidth="4" fill="transparent" />
+        {/* Vòng progress */}
+        <circle
+          cx="40" cy="40" r={radius} stroke={color} strokeWidth="4" fill="transparent"
+          strokeDasharray={circumference} strokeDashoffset={strokeDashoffset} strokeLinecap="round"
+          className="transition-all duration-1000 ease-out"
+        />
+      </svg>
+      <div className="absolute flex flex-col items-center text-white">
+        <span className="text-xl font-bold tracking-tight">{score}</span>
       </div>
     </div>
   );
 };
 
-export default QuickReview;
+interface QuickReviewProps {
+  riskScore: number;
+}
+
+export default function QuickReview({ riskScore }: QuickReviewProps) {
+  return (
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
+      
+      {/* 1. HERO SECTION */}
+      <div className="grid grid-cols-1 gap-4">
+        
+        {/* === THAY ĐỔI Ở ĐÂY: DÙNG MÀU BRAND BLUE === */}
+        {/* Style 1 (Brand Blue): bg-gradient-to-r from-[#496DFF] to-[#3B5BDB] */}
+        {/* Style 2 (Deep Ocean): bg-[#10224E] */}
+        {/* Style 3 (Purple): bg-gradient-to-r from-[#6366f1] to-[#a855f7] */}
+        
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#496DFF] to-[#3B5BDB] text-white shadow-lg p-5 flex items-center justify-between">
+           
+           {/* Decorative bg: Đổi thành màu trắng mờ để tạo hiệu ứng glass */}
+           <div className="absolute top-0 right-0 w-40 h-40 bg-white rounded-full blur-[80px] opacity-20 pointer-events-none -mr-10 -mt-10"></div>
+           <div className="absolute bottom-0 left-0 w-32 h-32 bg-indigo-500 rounded-full blur-[60px] opacity-30 pointer-events-none -ml-10 -mb-10"></div>
+           
+           <div className="relative z-10">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="bg-white/20 p-1.5 rounded-lg">
+                  <Activity className="w-4 h-4 text-white" />
+                </div>
+                <span className="text-xs font-bold uppercase tracking-wider text-blue-100">Health Score</span>
+              </div>
+              <h2 className="text-2xl font-bold text-white mb-1">Khá an toàn</h2>
+              <p className="text-xs text-blue-100 mt-1 max-w-[200px] leading-relaxed font-medium">
+                Hợp đồng đạt chuẩn cơ bản, cần lưu ý 2 điểm quan trọng.
+              </p>
+           </div>
+           
+           <CircularScore score={riskScore} />
+        </div>
+
+        {/* Mini Stat Cards */}
+        <div className="grid grid-cols-3 gap-3">
+           <div className="bg-red-50 border border-red-100 rounded-xl p-3 text-center hover:shadow-md transition-shadow cursor-pointer group">
+              <span className="block text-xl font-bold text-red-600 group-hover:scale-110 transition-transform">2</span>
+              <span className="text-[10px] uppercase font-bold text-red-400">Nghiêm trọng</span>
+           </div>
+           <div className="bg-orange-50 border border-orange-100 rounded-xl p-3 text-center hover:shadow-md transition-shadow cursor-pointer group">
+              <span className="block text-xl font-bold text-orange-500 group-hover:scale-110 transition-transform">5</span>
+              <span className="text-[10px] uppercase font-bold text-orange-400">Cảnh báo</span>
+           </div>
+           <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-center hover:shadow-md transition-shadow cursor-pointer group">
+              <span className="block text-xl font-bold text-[#496DFF] group-hover:scale-110 transition-transform">12</span>
+              <span className="text-[10px] uppercase font-bold text-blue-400">Đạt chuẩn</span>
+           </div>
+        </div>
+      </div>
+
+      {/* 2. RISK LIST */}
+      <div>
+        <div className="flex items-center justify-between mb-3 px-1">
+          <h4 className="flex items-center gap-2 font-bold text-slate-800 text-sm">
+            <ShieldAlert className="w-4 h-4 text-red-500" />
+            Cần xử lý ngay (2)
+          </h4>
+        </div>
+
+        <div className="space-y-3">
+          {/* Card Lỗi 1 */}
+          <div className="group bg-white border border-slate-100 rounded-xl p-4 shadow-sm hover:shadow-md hover:border-red-200 transition-all cursor-pointer">
+            <div className="flex justify-between items-start mb-2">
+              <div className="flex items-center gap-2">
+                 <AlertCircle className="w-4 h-4 text-red-500" />
+                 <h5 className="font-bold text-slate-800 text-sm group-hover:text-red-600 transition-colors">Phạt vi phạm quá cao</h5>
+              </div>
+              <span className="bg-red-100 text-red-700 text-[10px] font-extrabold px-2 py-0.5 rounded">HIGH</span>
+            </div>
+            <p className="text-xs text-slate-500 leading-relaxed mb-3">
+              Điều 3: Phạt 20% là trái với Luật Thương mại (max 8%).
+            </p>
+            <div className="flex items-center justify-between pt-2 border-t border-slate-50">
+               <span className="text-[10px] text-slate-400 font-medium">Trang 1 • Điều 3</span>
+               <div className="flex items-center text-[#496DFF] text-xs font-bold hover:underline">
+                  Sửa ngay <ChevronRight className="w-3 h-3 ml-1"/>
+               </div>
+            </div>
+          </div>
+
+          {/* Card Lỗi 2 */}
+          <div className="group bg-white border border-slate-100 rounded-xl p-4 shadow-sm hover:shadow-md hover:border-orange-200 transition-all cursor-pointer">
+            <div className="flex justify-between items-start mb-2">
+              <div className="flex items-center gap-2">
+                 <AlertTriangle className="w-4 h-4 text-orange-500" />
+                 <h5 className="font-bold text-slate-800 text-sm group-hover:text-orange-600 transition-colors">Thiếu cơ quan tài phán</h5>
+              </div>
+              <span className="bg-orange-100 text-orange-700 text-[10px] font-extrabold px-2 py-0.5 rounded">MED</span>
+            </div>
+            <p className="text-xs text-slate-500 leading-relaxed mb-3">
+              Chưa quy định rõ Tòa án hay Trọng tài khi tranh chấp.
+            </p>
+            <div className="flex items-center justify-between pt-2 border-t border-slate-50">
+               <span className="text-[10px] text-slate-400 font-medium">Toàn văn bản</span>
+               <div className="flex items-center text-[#496DFF] text-xs font-bold hover:underline">
+                  Xem gợi ý <ChevronRight className="w-3 h-3 ml-1"/>
+               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. GOOD POINTS */}
+      <div>
+        <h4 className="flex items-center gap-2 font-bold text-slate-800 text-sm mb-3 px-1">
+          <ShieldCheck className="w-4 h-4 text-[#496DFF]" />
+          Điểm tốt (12)
+        </h4>
+        
+        <div className="bg-white border border-blue-100 rounded-xl p-1 shadow-sm">
+           <div className="flex items-center gap-3 p-3 hover:bg-blue-50/50 rounded-lg transition-colors cursor-pointer group">
+              <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center shrink-0 border border-blue-100">
+                 <ShieldCheck className="w-4 h-4 text-[#496DFF]" />
+              </div>
+              <div className="flex-1">
+                 <p className="text-sm font-bold text-slate-700 group-hover:text-[#496DFF] transition-colors">Bảo mật thông tin</p>
+                 <p className="text-[10px] text-slate-400">Điều 8 • Rất chặt chẽ</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-[#496DFF]" />
+           </div>
+           
+           <div className="h-[1px] bg-slate-100 mx-3"></div>
+
+           <div className="flex items-center gap-3 p-3 hover:bg-blue-50/50 rounded-lg transition-colors cursor-pointer group">
+              <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center shrink-0 border border-blue-100">
+                 <TrendingUp className="w-4 h-4 text-[#496DFF]" />
+              </div>
+              <div className="flex-1">
+                 <p className="text-sm font-bold text-slate-700 group-hover:text-[#496DFF] transition-colors">Điều khoản thanh toán</p>
+                 <p className="text-[10px] text-slate-400">Điều 4 • Rõ ràng</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-[#496DFF]" />
+           </div>
+        </div>
+        
+        <div className="text-center mt-3">
+          <Button variant="ghost" size="sm" className="text-xs text-slate-400 hover:text-[#496DFF]">
+            Xem toàn bộ 12 điểm tốt
+          </Button>
+        </div>
+      </div>
+
+    </div>
+  );
+}

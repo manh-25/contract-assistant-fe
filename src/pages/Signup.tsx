@@ -2,55 +2,61 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Language } from "@/components/LanguageSwitcher";
-import { useTranslation } from "@/lib/translations";
 import { useNavigate } from "react-router-dom";
-import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 
-interface SignupProps {
-  language: Language;
-}
+// Icon Google (Tái sử dụng)
+const GoogleIcon = () => (
+  <svg className="w-6 h-6" viewBox="0 0 48 48">
+    <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z" />
+    <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z" />
+    <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z" />
+    <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z" />
+  </svg>
+);
 
-// Schema: Username bắt buộc, Email optional
+// Schema Validate: Thêm confirm password
 const signupSchema = z.object({
-  username: z.string().min(3, "Username must be at least 3 characters"),
-  email: z.string().email().optional().or(z.literal("")), // Cho phép chuỗi rỗng hoặc email hợp lệ
-  password: z.string().min(6),
+  fullName: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  confirmPassword: z.string()
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"],
 });
 
-export const Signup = ({ language }: SignupProps) => {
-  const t = useTranslation(language);
+export const Signup = () => {
   const navigate = useNavigate();
+  const { signUp, user } = useAuth(); // Giả sử hook có hàm signUp
   const { toast } = useToast();
-  const { signUp, user } = useAuth();
 
-  const [username, setUsername] = useState(""); // Đổi từ fullName -> username
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [formData, setFormData] = useState({
+    fullName: "",
+    email: "",
+    password: "",
+    confirmPassword: ""
+  });
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (user) navigate("/");
   }, [user, navigate]);
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, [e.target.id]: e.target.value });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password !== confirmPassword) {
-      toast({ title: t.passwordMismatch, variant: "destructive" });
-      return;
-    }
+    const validation = signupSchema.safeParse(formData);
 
-    // Validate theo schema mới
-    const validation = signupSchema.safeParse({ username, email, password });
     if (!validation.success) {
       toast({
-        title: language === "vi" ? "Lỗi xác thực" : "Validation error",
-        description: language === "vi" 
-          ? "Vui lòng kiểm tra lại thông tin (Username tối thiểu 3 ký tự)" 
-          : "Please check your information (Username min 3 chars)",
+        title: "Validation Error",
+        description: validation.error.errors[0].message,
         variant: "destructive",
       });
       return;
@@ -58,26 +64,14 @@ export const Signup = ({ language }: SignupProps) => {
 
     setLoading(true);
     try {
-      const { error } = await signUp(email, password, username);
-      if (error) {
-        toast({
-          title: language === "vi" ? "Đăng ký thất bại" : "Sign up failed",
-          description: error.message,
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: language === "vi" ? "Đăng ký thành công" : "Sign up successful",
-          description:
-            language === "vi"
-              ? "Bạn có thể đăng nhập ngay."
-              : "You can sign in now.",
-        });
-        navigate("/login");
-      }
+      const { error } = await signUp(formData.email, formData.password, { fullName: formData.fullName });
+      if (error) throw error;
+      
+      toast({ title: "Account created successfully! Please check your email." });
+      navigate("/login");
     } catch (err: any) {
       toast({
-        title: language === "vi" ? "Lỗi" : "Error",
+        title: "Registration Failed",
         description: err.message,
         variant: "destructive",
       });
@@ -87,133 +81,135 @@ export const Signup = ({ language }: SignupProps) => {
   };
 
   return (
-    <div className="min-h-screen w-full bg-[#1A1C4B] flex items-center justify-center p-4 lg:p-8 overflow-hidden font-sans">
-      <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-8 items-center">
-        {/* Left Side */}
-        <div className="hidden lg:flex flex-col text-white space-y-8 pl-8">
-          <div className="flex items-center gap-4">
-            <div className="bg-white text-[#1A1C4B] px-3 py-2 rounded-lg font-bold text-xs tracking-widest">
-              LOGO
-            </div>
-            <span className="text-2xl font-bold tracking-wide">AGREEME</span>
-          </div>
+    <div className="fixed inset-0 z-50 w-full h-screen bg-[#050A18] overflow-hidden font-sans">
+      
+      {/* GRID LAYOUT: Khớp thông số Login */}
+      <div className="w-full h-full grid grid-cols-1 lg:grid-cols-12 gap-x-[20px] px-[10px]">
+        
+        {/* LEFT SIDE: JOIN US */}
+        <div className="hidden lg:flex lg:col-start-2 lg:col-span-6 flex-col justify-center text-white relative z-10">
+          <div className="absolute top-0 -left-[20%] w-[150%] h-full bg-[radial-gradient(circle_at_30%_50%,_rgba(73,109,255,0.08),_transparent)] pointer-events-none" />
 
-          <div className="space-y-4">
-            <h1 className="text-7xl font-extrabold tracking-tight">JOIN US,</h1>
-            <p className="text-gray-300 text-lg max-w-md leading-relaxed">
-              Create an account to start your journey.
-            </p>
+          <div className="relative space-y-12">
+            <div className="flex items-center gap-4">
+              <div className="border border-white/20 bg-white/5 px-4 py-2 rounded text-xs font-bold tracking-[0.2em] uppercase text-white/90">
+                Logo
+              </div>
+              <span className="text-xl font-bold tracking-[0.15em]">AGREEME</span>
+            </div>
+
+            <div className="space-y-6">
+              <h1 className="text-8xl xl:text-9xl font-bold tracking-tight text-white leading-none">
+                JOIN US,
+              </h1>
+              <p className="text-gray-400 text-xl max-w-lg leading-relaxed font-light">
+                Create your account to start analyzing contracts <br/>
+                with the power of Artificial Intelligence.
+              </p>
+            </div>
           </div>
         </div>
 
-        {/* Right Side: Form */}
-        <div className="flex justify-center lg:justify-end w-full">
-          <div className="bg-white rounded-[40px] p-8 md:p-12 w-full max-w-md shadow-2xl min-h-[600px] flex flex-col justify-center">
+        {/* RIGHT SIDE (Panel): Cột 9 -> 11 */}
+        <div className="col-span-1 lg:col-start-9 lg:col-span-3 flex flex-col justify-end h-full relative z-20 pb-0">
+          
+          <div className="bg-white w-full h-[92%] rounded-t-[32px] lg:rounded-t-[40px] shadow-2xl p-8 lg:p-10 flex flex-col justify-center overflow-y-auto custom-scrollbar">
             
-            <div className="mb-6">
-              <h2 className="text-[#496DFF] text-4xl font-bold mb-2">Sign Up</h2>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Username Field (thay cho FullName) */}
-              <div className="space-y-1">
-                <Label
-                  htmlFor="username"
-                  className="text-gray-600 font-medium flex items-center"
-                >
-                  <span className="text-red-500 mr-1">*</span>
-                  {language === "vi" ? "Tên đăng nhập" : "Username"}
-                </Label>
-                <Input
-                  id="username"
-                  placeholder={
-                    language === "vi" ? "Nhập tên đăng nhập" : "Create a username"
-                  }
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="h-11 border-blue-200 bg-blue-50/30 rounded-xl focus-visible:ring-[#496DFF]"
-                  required
-                />
+            <div className="w-full space-y-6">
+              <div className="space-y-2">
+                <h2 className="text-[#050A18] text-4xl font-bold tracking-tight">Sign Up</h2>
+                <p className="text-gray-500 text-base">Create a new account today.</p>
               </div>
 
-              {/* Email Field (Optional) */}
-              <div className="space-y-1">
-                <Label
-                  htmlFor="email"
-                  className="text-gray-600 font-medium flex items-center"
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <div className="space-y-4">
+                   {/* Full Name */}
+                   <div className="space-y-2">
+                    <Label htmlFor="fullName" className="text-[#050A18] font-semibold text-base">
+                      User Name
+                    </Label>
+                    <Input
+                      id="fullName"
+                      placeholder="John Doe"
+                      value={formData.fullName}
+                      onChange={handleChange}
+                      className="h-12 xl:h-14 border-gray-200 bg-gray-50 rounded-xl focus-visible:ring-1 focus-visible:ring-[#050A18] text-base px-4"
+                      required
+                    />
+                  </div>
+
+                  {/* Email */}
+                  <div className="space-y-2">
+                    <Label htmlFor="email" className="text-[#050A18] font-semibold text-base">
+                      Email
+                    </Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="name@company.com"
+                      value={formData.email}
+                      onChange={handleChange}
+                      className="h-12 xl:h-14 border-gray-200 bg-gray-50 rounded-xl focus-visible:ring-1 focus-visible:ring-[#050A18] text-base px-4"
+                      required
+                    />
+                  </div>
+
+                  {/* Password */}
+                  <div className="space-y-2">
+                    <Label htmlFor="password" className="text-[#050A18] font-semibold text-base">
+                      Password
+                    </Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder="••••••••"
+                      value={formData.password}
+                      onChange={handleChange}
+                      className="h-12 xl:h-14 border-gray-200 bg-gray-50 rounded-xl focus-visible:ring-1 focus-visible:ring-[#050A18] text-base px-4"
+                      required
+                    />
+                  </div>
+
+                  {/* Confirm Password */}
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword" className="text-[#050A18] font-semibold text-base">
+                      Confirm Password
+                    </Label>
+                    <Input
+                      id="confirmPassword"
+                      type="password"
+                      placeholder="••••••••"
+                      value={formData.confirmPassword}
+                      onChange={handleChange}
+                      className="h-12 xl:h-14 border-gray-200 bg-gray-50 rounded-xl focus-visible:ring-1 focus-visible:ring-[#050A18] text-base px-4"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full h-12 xl:h-14 bg-[#050A18] hover:bg-[#1a2333] text-white rounded-xl text-lg font-bold shadow-lg transition-all mt-2"
+                  disabled={loading}
                 >
-                  {t.email} <span className="text-gray-400 text-xs ml-1 font-normal">(Optional)</span>
-                </Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder={t.email}
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="h-11 border-blue-200 bg-blue-50/30 rounded-xl focus-visible:ring-[#496DFF]"
-                />
-              </div>
+                  {loading ? "Creating Account..." : "Create Account"}
+                </Button>
+              </form>
 
-              {/* Password */}
-              <div className="space-y-1">
-                <Label
-                  htmlFor="password"
-                  className="text-gray-600 font-medium flex items-center"
+              {/* Divider & Google */}
+              <div className="relative pt-2">
+                <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-gray-100" /></div>
+                <div className="relative flex justify-center text-xs uppercase tracking-wider"><span className="bg-white px-2 text-gray-400 font-medium">Or</span></div>
+              </div>
+              <div className="text-center text-base text-gray-500">
+                Already have an account?{" "}
+                <span
+                  className="text-[#496DFF] font-bold cursor-pointer hover:underline"
+                  onClick={() => navigate("/login")}
                 >
-                  <span className="text-red-500 mr-1">*</span> {t.password}
-                </Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder={t.password}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="h-11 border-blue-200 bg-blue-50/30 rounded-xl focus-visible:ring-[#496DFF]"
-                  required
-                />
+                  Log In
+                </span>
               </div>
-
-              {/* Confirm Password */}
-              <div className="space-y-1">
-                <Label
-                  htmlFor="confirmPassword"
-                  className="text-gray-600 font-medium flex items-center"
-                >
-                  <span className="text-red-500 mr-1">*</span> {t.confirmPassword}
-                </Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  placeholder={t.confirmPassword}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="h-11 border-blue-200 bg-blue-50/30 rounded-xl focus-visible:ring-[#496DFF]"
-                  required
-                />
-              </div>
-
-              <Button
-                type="submit"
-                size="lg"
-                className="w-full h-12 bg-[#496DFF] hover:bg-[#3b5bdb] text-white rounded-full text-md font-semibold shadow-md mt-4"
-                disabled={loading}
-              >
-                {loading
-                  ? language === "vi"
-                    ? "Đang đăng ký..."
-                    : "Signing up..."
-                  : t.signUpButton}
-              </Button>
-            </form>
-
-            <div className="mt-6 text-center text-xs text-gray-500">
-              {t.alreadyHaveAccount}{" "}
-              <span
-                className="text-[#496DFF] font-bold cursor-pointer hover:underline"
-                onClick={() => navigate("/login")}
-              >
-                {t.signIn}
-              </span>
             </div>
           </div>
         </div>

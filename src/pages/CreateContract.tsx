@@ -1,386 +1,154 @@
-import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Save, RotateCcw, Trash2, Download, PenTool } from "lucide-react";
-import { Language } from "@/components/LanguageSwitcher";
-import { useTranslation } from "@/lib/translations";
-import { useToast } from "@/hooks/use-toast";
+import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { ArrowLeft, Save, Download, FileText, User, Home, DollarSign, Calendar, AlertTriangle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { jsPDF } from 'jspdf';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
-interface CreateContractProps {
-  language: Language;
-}
+// --- NỘI DUNG MOCKUP HỢP ĐỒNG (FULL) ---
+const contractTemplateHtml = `
+  <p style="text-align:center;"><strong>CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</strong><br><strong>Độc lập - Tự do - Hạnh phúc</strong></p>
+  <h2 style="text-align:center; margin-top: 1.5rem; margin-bottom: 1.5rem;">HỢP ĐỒNG THUÊ CĂN HỘ NHÀ CHUNG CƯ</h2>
+  <p>Hôm nay, ngày {{NGAY_KY}} tháng {{THANG_KY}} năm {{NAM_KY}}, tại {{DIA_DIEM_KY}}.</p>
+  <p>Chúng tôi gồm:</p>
+  <p><strong>BÊN CHO THUÊ (Sau đây gọi tắt là bên A):</strong></p>
+  <p>Ông: {{BEN_A_ONG}}</p>
+  <p>CMND số: {{BEN_A_CMND_ONG}}</p>
+  
+  <p><strong>BÊN THUÊ (Sau đây gọi tắt là bên B):</strong></p>
+  <p>Ông: {{BEN_B_ONG}}</p>
+  <p>CMND số: {{BEN_B_CMND_ONG}}</p>
+  
+  <p>Hai bên đồng ý thoả thuận việc ký kết Hợp đồng thuê căn hộ chung cư với các nội dung sau:</p>
+  
+  <p><strong>ĐIỀU 1: CĂN HỘ CHUNG CƯ CHO THUÊ</strong></p>
+  <p>Bên A đồng ý cho bên B thuê căn hộ chung cư tại địa chỉ: Căn hộ số {{SO_NHA}}, tầng {{TANG}}, tòa nhà {{TOA_NHA}}, Khu chung cư {{KHU_CHUNG_CU}}.</p>
+  <p>- Diện tích sàn căn hộ: {{DIEN_TICH}} m².</p>
+  
+  <p><strong>ĐIỀU 2: MỤC ĐÍCH THUÊ</strong></p>
+  <p>Mục đích thuê là để ở.</p>
+  
+  <p><strong>ĐIỀU 3: THỜI HẠN THUÊ</strong></p>
+  <p>Thời hạn thuê là {{THOI_HAN_THUE}}, kể từ ngày {{NGAY_BAT_DAU}} đến ngày {{NGAY_KET_THUC}}.</p>
 
-const templates = {
-  "rental": {
-    name: "Hợp đồng thuê nhà",
-    fields: ["landlordName", "landlordId", "landlordAddress", "tenantName", "tenantId", "tenantAddress", "propertyAddress", "rentalPrice", "startDate", "endDate", "deposit"],
-    template: (data: any) => `HỢP ĐỒNG THUÊ NHÀ
+  <p><strong>ĐIỀU 4: GIÁ THUÊ VÀ PHƯƠNG THỨC THANH TOÁN</strong></p>
+  <p>1. Giá thuê: {{GIA_THUE}} VNĐ/tháng.</p>
+  <p>2. Tiền đặt cọc: {{TIEN_COC}} VNĐ.</p>
+  
+  <p><strong>ĐIỀU 5: TRÁCH NHIỆM VÀ QUYỀN CỦA CÁC BÊN</strong></p>
+  <p>Quyền và Trách nhiệm của Bên A: Bàn giao căn hộ đúng thời hạn; Bảo đảm quyền sử dụng trọn vẹn của Bên B.</p>
+  <p>Quyền và Trách nhiệm của Bên B: Sử dụng căn hộ đúng mục đích; Thanh toán tiền thuê đầy đủ, đúng hạn; Bảo quản, giữ gìn tài sản.</p>
 
-Hôm nay, ngày ${data.startDate || "__/__/____"}, chúng tôi gồm:
+  <p><strong>ĐIỀU 6: PHƯƠNG THỨC GIẢI QUYẾT TRANH CHẤP</strong></p>
+  <p>Trong quá trình thực hiện Hợp đồng này, nếu phát sinh tranh chấp, các bên cùng nhau thương lượng giải quyết trên nguyên tắc tôn trọng quyền lợi của nhau; trong trường hợp không thương lượng được thì một trong hai bên có quyền khởi kiện để yêu cầu toà án có thẩm quyền giải quyết theo quy định của pháp luật.</p>
 
-BÊN CHO THUÊ (Bên A):
-- Họ và tên: ${data.landlordName || "____________________"}
-- CMND/CCCD số: ${data.landlordId || "____________________"}
-- Địa chỉ thường trú: ${data.landlordAddress || "____________________"}
+  <p><strong>ĐIỀU 7: CAM ĐOAN CỦA CÁC BÊN</strong></p>
+  <p>Bên A và bên B chịu trách nhiệm trước pháp luật về những lời cam đoan sau đây: Những thông tin về nhân thân, về căn hộ nhà chung cư đã ghi trong Hợp đồng này là đúng sự thật.</p>
 
-BÊN THUÊ (Bên B):
-- Họ và tên: ${data.tenantName || "____________________"}
-- CMND/CCCD số: ${data.tenantId || "____________________"}
-- Địa chỉ thường trú: ${data.tenantAddress || "____________________"}
+  <p><strong>ĐIỀU 8: ĐIỀU KHOẢN CUỐI CÙNG</strong></p>
+  <p>Hai bên đã hiểu rõ quyền, nghĩa vụ, lợi ích hợp pháp của mình và hậu quả pháp lý của việc giao kết Hợp đồng này.</p>
+  
+  <div style="page-break-before: always;"></div>
+  
+  <table style="width: 100%; margin-top: 5rem; text-align: center; font-weight: bold; border: none; border-collapse: collapse;">
+    <tr style="border: none;">
+      <td style="border: none; padding-bottom: 5rem;">BÊN CHO THUÊ<br/>(Ký và ghi rõ họ tên)</td>
+      <td style="border: none; padding-bottom: 5rem;">BÊN THUÊ<br/>(Ký và ghi rõ họ tên)</td>
+    </tr>
+    <tr style="border: none;">
+      <td style="border: none;">{{BEN_A_ONG}}</td>
+      <td style="border: none;">{{BEN_B_ONG}}</td>
+    </tr>
+  </table>
+`;
 
-Hai bên thỏa thuận ký kết hợp đồng thuê nhà với các điều khoản sau:
-
-ĐIỀU 1: ĐỐI TƯỢNG HỢP ĐỒNG
-Bên A đồng ý cho Bên B thuê nhà tại địa chỉ: ${data.propertyAddress || "____________________"}
-
-ĐIỀU 2: THỜI HẠN THUÊ
-Thời hạn thuê: ${data.startDate || "__/__/____"} đến ${data.endDate || "__/__/____"}
-
-ĐIỀU 3: GIÁ THUÊ VÀ PHƯƠNG THỨC THANH TOÁN
-- Giá thuê: ${data.rentalPrice || "____________"} VNĐ/tháng
-- Tiền đặt cọc: ${data.deposit || "____________"} VNĐ
-- Thanh toán vào ngày 05 hàng tháng
-
-ĐIỀU 4: QUYỀN VÀ NGHĨA VỤ CỦA BÊN A
-- Giao nhà cho Bên B đúng thời hạn
-- Đảm bảo Bên B sử dụng nhà ổn định trong thời gian thuê
-
-ĐIỀU 5: QUYỀN VÀ NGHĨA VỤ CỦA BÊN B
-- Thanh toán đầy đủ, đúng hạn tiền thuê nhà
-- Giữ gìn nhà cửa, không làm hư hỏng tài sản
-- Chấp hành đầy đủ các quy định về an ninh, trật tự
-
-ĐIỀU 6: ĐIỀU KHOẢN CHUNG
-Hợp đồng được lập thành 02 bản có giá trị như nhau, mỗi bên giữ 01 bản.
-
-ĐẠI DIỆN BÊN A          ĐẠI DIỆN BÊN B
-(Ký và ghi rõ họ tên)   (Ký và ghi rõ họ tên)`
-  },
-  "employment": {
-    name: "Hợp đồng lao động",
-    fields: ["employerName", "employerAddress", "employerRep", "employeeName", "employeeId", "employeeAddress", "position", "salary", "startDate", "duration"],
-    template: (data: any) => `HỢP ĐỒNG LAO ĐỘNG
-
-Hôm nay, ngày ${data.startDate || "__/__/____"}, chúng tôi gồm:
-
-BÊN THUÊ LAO ĐỘNG (Người sử dụng lao động):
-- Tên công ty: ${data.employerName || "____________________"}
-- Địa chỉ: ${data.employerAddress || "____________________"}
-- Đại diện: ${data.employerRep || "____________________"}
-
-BÊN LAO ĐỘNG (Người lao động):
-- Họ và tên: ${data.employeeName || "____________________"}
-- CMND/CCCD số: ${data.employeeId || "____________________"}
-- Địa chỉ thường trú: ${data.employeeAddress || "____________________"}
-
-Hai bên thỏa thuận ký kết hợp đồng lao động với các điều khoản sau:
-
-ĐIỀU 1: CÔNG VIỆC
-Bên B được tuyển dụng vào vị trí: ${data.position || "____________________"}
-
-ĐIỀU 2: THỜI HẠN HỢP ĐỒNG
-- Thời hạn hợp đồng: ${data.duration || "____________________"}
-- Ngày bắt đầu làm việc: ${data.startDate || "__/__/____"}
-
-ĐIỀU 3: LƯƠNG VÀ CHẾ ĐỘ PHÚC LỢI
-- Mức lương: ${data.salary || "____________"} VNĐ/tháng
-- Được hưởng đầy đủ các chế độ theo quy định của pháp luật
-
-ĐIỀU 4: THỜI GIÀ LÀM VIỆC VÀ NGHỈ NGƠI
-- Làm việc 8 giờ/ngày, 48 giờ/tuần
-- Được nghỉ phép năm theo quy định
-
-ĐIỀU 5: QUYỀN VÀ NGHĨA VỤ CỦA NGƯỜI SỬ DỤNG LAO ĐỘNG
-- Bố trí công việc phù hợp
-- Trả lương đầy đủ, đúng hạn
-
-ĐIỀU 6: QUYỀN VÀ NGHĨA VỤ CỦA NGƯỜI LAO ĐỘNG
-- Hoàn thành công việc được giao
-- Chấp hành nội quy, quy định
-
-ĐIỀU 7: ĐIỀU KHOẢN CHUNG
-Hợp đồng được lập thành 02 bản có giá trị như nhau.
-
-ĐẠI DIỆN NGƯỜI SỬ DỤNG LĐ     NGƯỜI LAO ĐỘNG
-(Ký và ghi rõ họ tên)          (Ký và ghi rõ họ tên)`
-  },
-  "sales": {
-    name: "Hợp đồng mua bán",
-    fields: ["sellerName", "sellerId", "sellerAddress", "buyerName", "buyerId", "buyerAddress", "productName", "quantity", "price", "totalAmount", "deliveryDate"],
-    template: (data: any) => `HỢP ĐỒNG MUA BÁN
-
-Hôm nay, ngày __/__/____, chúng tôi gồm:
-
-BÊN BÁN (Bên A):
-- Họ và tên: ${data.sellerName || "____________________"}
-- CMND/CCCD số: ${data.sellerId || "____________________"}
-- Địa chỉ: ${data.sellerAddress || "____________________"}
-
-BÊN MUA (Bên B):
-- Họ và tên: ${data.buyerName || "____________________"}
-- CMND/CCCD số: ${data.buyerId || "____________________"}
-- Địa chỉ: ${data.buyerAddress || "____________________"}
-
-Hai bên thỏa thuận ký kết hợp đồng mua bán với các điều khoản sau:
-
-ĐIỀU 1: ĐỐI TƯỢNG HỢP ĐỒNG
-- Tên hàng hóa: ${data.productName || "____________________"}
-- Số lượng: ${data.quantity || "____________"}
-- Đơn giá: ${data.price || "____________"} VNĐ
-- Tổng giá trị: ${data.totalAmount || "____________"} VNĐ
-
-ĐIỀU 2: CHẤT LƯỢNG HÀNG HÓA
-Hàng hóa phải đảm bảo chất lượng theo tiêu chuẩn đã thỏa thuận
-
-ĐIỀU 3: THỜI HẠN VÀ ĐỊA ĐIỂM GIAO HÀNG
-- Thời hạn giao hàng: ${data.deliveryDate || "__/__/____"}
-- Địa điểm giao hàng: ${data.buyerAddress || "____________________"}
-
-ĐIỀU 4: PHƯƠNG THỨC THANH TOÁN
-Thanh toán khi nhận hàng hoặc theo thỏa thuận
-
-ĐIỀU 5: TRÁCH NHIỆM CỦA CÁC BÊN
-Bên A: Giao hàng đúng chất lượng, đúng hạn
-Bên B: Thanh toán đầy đủ, đúng hạn
-
-ĐIỀU 6: ĐIỀU KHOẢN CHUNG
-Hợp đồng được lập thành 02 bản có giá trị như nhau.
-
-ĐẠI DIỆN BÊN A          ĐẠI DIỆN BÊN B
-(Ký và ghi rõ họ tên)   (Ký và ghi rõ họ tên)`
+const applyPlaceholders = (html: string, data: any): string => {
+  let result = html;
+  for (const key in data) {
+    const regex = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
+    result = result.replace(regex, data[key] || '...');
   }
+  return result;
 };
 
-export const CreateContract = ({ language }: CreateContractProps) => {
-  const t = useTranslation(language);
-  const { toast } = useToast();
-  const { templateId } = useParams();
-  const [formData, setFormData] = useState<any>({});
-  const [contractContent, setContractContent] = useState("");
+const CreateContract = () => {
+  const navigate = useNavigate();
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
-  useEffect(() => {
-    if (templateId && templates[templateId as keyof typeof templates]) {
-      const template = templates[templateId as keyof typeof templates];
-      setContractContent(template.template({}));
-    } else {
-      setContractContent(`HỢP ĐỒNG MẪU
+  const [formData, setFormData] = useState({
+    title: "Hợp đồng thuê căn hộ chung cư", 
+    NGAY_KY: new Date().getDate().toString(), THANG_KY: (new Date().getMonth() + 1).toString(), NAM_KY: new Date().getFullYear().toString(),
+    DIA_DIEM_KY: "Thanh Hóa", BEN_A_ONG: "Nguyễn Trí Dũng", BEN_A_CMND_ONG: "", BEN_A_BA: "", BEN_A_CMND_BA: "",
+    BEN_B_ONG: "", BEN_B_CMND_ONG: "", BEN_B_BA: "", BEN_B_CMND_BA: "",
+    SO_NHA: "", TANG: "", TOA_NHA: "", KHU_CHUNG_CU: "", DIEN_TICH: "", DIEN_TICH_CHU: "",
+    THOI_HAN_THUE: "", NGAY_BAT_DAU: "", NGAY_KET_THUC: "", GIA_THUE: "", TIEN_COC: ""
+  });
 
-Điều 1: Các bên tham gia hợp đồng
-
-Bên A (Bên thuê):
-- Tên: __________________
-- Địa chỉ: __________________
-- CMND/CCCD: __________________
-
-Bên B (Bên cho thuê):
-- Tên: __________________
-- Địa chỉ: __________________
-- CMND/CCCD: __________________
-
-Điều 2: Đối tượng hợp đồng
-
-Bên B đồng ý cho Bên A thuê [mô tả tài sản]
-
-Điều 3: Thời hạn hợp đồng
-
-Hợp đồng có hiệu lực từ ngày __/__/____ đến ngày __/__/____
-
-Điều 4: Giá thuê và phương thức thanh toán
-
-- Giá thuê: ______________ VNĐ/tháng
-- Thanh toán: ____________________
-
-Điều 5: Quyền và nghĩa vụ của các bên
-
-Bên A có quyền:
-- [Quyền 1]
-- [Quyền 2]
-
-Bên A có nghĩa vụ:
-- [Nghĩa vụ 1]
-- [Nghĩa vụ 2]
-
-Điều 6: Điều khoản chung
-
-Hợp đồng này được lập thành 02 bản có giá trị pháp lý như nhau, mỗi bên giữ 01 bản.
-
-ĐẠI DIỆN BÊN A          ĐẠI DIỆN BÊN B
-(Ký và ghi rõ họ tên)   (Ký và ghi rõ họ tên)`);
-    }
-  }, [templateId]);
-
-  const handleFormChange = (field: string, value: string) => {
-    setFormData({ ...formData, [field]: value });
+  const renderedHtml = useMemo(() => applyPlaceholders(contractTemplateHtml, formData), [formData]);
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
-
-  const handleGenerateContract = () => {
-    if (templateId && templates[templateId as keyof typeof templates]) {
-      const template = templates[templateId as keyof typeof templates];
-      setContractContent(template.template(formData));
-      toast({
-        title: language === "vi" ? "Đã tạo hợp đồng" : "Contract generated",
-        description: language === "vi" ? "Hợp đồng đã được tạo từ thông tin bạn nhập" : "Contract has been generated from your details",
-      });
-    }
-  };
-
-  const currentTemplate = templateId ? templates[templateId as keyof typeof templates] : null;
-
-  const handleSave = () => {
-    toast({
-      title: language === "vi" ? "Đã lưu" : "Saved",
-      description: language === "vi" ? "Hợp đồng đã được lưu thành công" : "Contract saved successfully",
-    });
-  };
-
-  const handleReset = () => {
-    if (confirm(language === "vi" ? "Bạn có chắc muốn làm lại?" : "Are you sure you want to reset?")) {
-      setContractContent("");
-    }
-  };
-
-  const handleDelete = () => {
-    if (confirm(language === "vi" ? "Bạn có chắc muốn xóa?" : "Are you sure you want to delete?")) {
-      setContractContent("");
-      toast({
-        title: language === "vi" ? "Đã xóa" : "Deleted",
-        description: language === "vi" ? "Hợp đồng đã được xóa" : "Contract has been deleted",
-      });
-    }
-  };
-
-  const handleExport = () => {
-    const blob = new Blob([contractContent], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "hop-dong.txt";
-    a.click();
-    toast({
-      title: language === "vi" ? "Đã xuất" : "Exported",
-      description: language === "vi" ? "Hợp đồng đã được xuất" : "Contract has been exported",
-    });
-  };
-
-  const fieldLabels: Record<string, { vi: string; en: string }> = {
-    landlordName: { vi: "Tên bên cho thuê", en: "Landlord Name" },
-    landlordId: { vi: "CMND/CCCD bên cho thuê", en: "Landlord ID" },
-    landlordAddress: { vi: "Địa chỉ bên cho thuê", en: "Landlord Address" },
-    tenantName: { vi: "Tên bên thuê", en: "Tenant Name" },
-    tenantId: { vi: "CMND/CCCD bên thuê", en: "Tenant ID" },
-    tenantAddress: { vi: "Địa chỉ bên thuê", en: "Tenant Address" },
-    propertyAddress: { vi: "Địa chỉ nhà cho thuê", en: "Property Address" },
-    rentalPrice: { vi: "Giá thuê (VNĐ/tháng)", en: "Rental Price (VND/month)" },
-    startDate: { vi: "Ngày bắt đầu", en: "Start Date" },
-    endDate: { vi: "Ngày kết thúc", en: "End Date" },
-    deposit: { vi: "Tiền đặt cọc (VNĐ)", en: "Deposit (VND)" },
-    employerName: { vi: "Tên công ty", en: "Company Name" },
-    employerAddress: { vi: "Địa chỉ công ty", en: "Company Address" },
-    employerRep: { vi: "Người đại diện", en: "Representative" },
-    employeeName: { vi: "Tên người lao động", en: "Employee Name" },
-    employeeId: { vi: "CMND/CCCD", en: "ID Number" },
-    employeeAddress: { vi: "Địa chỉ", en: "Address" },
-    position: { vi: "Vị trí", en: "Position" },
-    salary: { vi: "Lương (VNĐ/tháng)", en: "Salary (VND/month)" },
-    duration: { vi: "Thời hạn hợp đồng", en: "Contract Duration" },
-    sellerName: { vi: "Tên bên bán", en: "Seller Name" },
-    sellerId: { vi: "CMND/CCCD bên bán", en: "Seller ID" },
-    sellerAddress: { vi: "Địa chỉ bên bán", en: "Seller Address" },
-    buyerName: { vi: "Tên bên mua", en: "Buyer Name" },
-    buyerId: { vi: "CMND/CCCD bên mua", en: "Buyer ID" },
-    buyerAddress: { vi: "Địa chỉ bên mua", en: "Buyer Address" },
-    productName: { vi: "Tên hàng hóa", en: "Product Name" },
-    quantity: { vi: "Số lượng", en: "Quantity" },
-    price: { vi: "Đơn giá (VNĐ)", en: "Unit Price (VND)" },
-    totalAmount: { vi: "Tổng giá trị (VNĐ)", en: "Total Amount (VND)" },
-    deliveryDate: { vi: "Ngày giao hàng", en: "Delivery Date" },
-  };
+  
+  const handleConfirmSave = () => { /* Logic Lưu */ };
+  const handleDownloadPdf = () => { /* Logic Xuất PDF */ };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold text-foreground mb-2">
-          {currentTemplate ? currentTemplate.name : t.createContract}
-        </h1>
-        <p className="text-muted-foreground mb-8">
-          {language === "vi"
-            ? "Điền thông tin chi tiết để tạo hợp đồng"
-            : "Fill in details to create your contract"}
-        </p>
-
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          <div className="lg:col-span-1">
-            <Card className="p-4 sticky top-24">
-              <h3 className="font-bold mb-4">{t.contractDetails}</h3>
-              {currentTemplate && currentTemplate.fields ? (
-                <div className="space-y-4">
-                  {currentTemplate.fields.map((field) => (
-                    <div key={field}>
-                      <Label htmlFor={field}>
-                        {fieldLabels[field]?.[language] || field}
-                      </Label>
-                      <Input
-                        id={field}
-                        value={formData[field] || ""}
-                        onChange={(e) => handleFormChange(field, e.target.value)}
-                        type={field.includes("Date") ? "date" : "text"}
-                      />
-                    </div>
-                  ))}
-                  <Button className="w-full" onClick={handleGenerateContract}>
-                    <PenTool className="w-4 h-4 mr-2" />
-                    {t.generateContract}
-                  </Button>
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  {language === "vi"
-                    ? "Chọn template từ trang Templates để bắt đầu"
-                    : "Select a template from Templates page to start"}
-                </p>
-              )}
-            </Card>
-          </div>
-
-          <div className="lg:col-span-3">
-            <Card className="p-6 shadow-lg">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold">{t.editContract}</h2>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={handleSave}>
-                    <Save className="w-4 h-4 mr-1" />
-                    {t.save}
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={handleReset}>
-                    <RotateCcw className="w-4 h-4 mr-1" />
-                    {t.resetContract}
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={handleExport}>
-                    <Download className="w-4 h-4 mr-1" />
-                    {t.exportContract}
-                  </Button>
-                  <Button variant="destructive" size="sm" onClick={handleDelete}>
-                    <Trash2 className="w-4 h-4 mr-1" />
-                    {t.delete}
-                  </Button>
-                </div>
-              </div>
-
-              <div className="bg-background border border-border rounded-lg p-6 min-h-[600px]">
-                <textarea
-                  value={contractContent}
-                  onChange={(e) => setContractContent(e.target.value)}
-                  className="w-full h-full min-h-[600px] bg-transparent border-none outline-none resize-none font-mono text-sm"
-                  style={{ fontFamily: "Courier New, monospace" }}
-                />
-              </div>
-            </Card>
-          </div>
+    <div className="fixed inset-0 z-50 flex flex-col bg-[#F8FAFC]">
+      <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 shrink-0 z-20">
+        <div className="flex items-center gap-4 min-w-0">
+          <Button variant="ghost" size="sm" onClick={() => navigate('/library')} className="text-slate-500 hover:text-slate-800 gap-2 shrink-0"><ArrowLeft size={18} /> Thư viện</Button>
+          <div className="h-6 w-px bg-slate-200 shrink-0"></div>
+          <div className="flex items-center gap-2 min-w-0"><FileText size={18} className="text-[#4F46E5] shrink-0"/><span className="font-bold text-slate-800 text-lg truncate">{formData.title}</span></div>
         </div>
+        <div className="flex items-center gap-3 shrink-0">
+          <Button onClick={handleDownloadPdf} variant="outline" className="gap-2 text-slate-600"><Download size={16} /> Xuất PDF</Button>
+          <Button onClick={() => setIsConfirmOpen(true)} className="bg-[#4F46E5] hover:bg-blue-700 gap-2 text-white"><Save size={16} /> Lưu</Button>
+        </div>
+      </header>
+
+      <div className="flex-1 flex overflow-hidden">
+         {/* --- CỘT TRÁI: FORM --- */}
+         <div className="w-[400px] shrink-0 bg-white border-r border-slate-200 flex flex-col h-full overflow-y-auto shadow-sm z-10 custom-scrollbar">
+            <div className="p-6 space-y-6">
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-100"><h3 className="font-bold text-[#4F46E5] text-sm uppercase mb-2">Điền thông tin hợp đồng</h3></div>
+                <div className="space-y-4">
+                    <div className="space-y-2"><Label><User size={14} className="inline mr-2"/>Bên Cho Thuê</Label><Input name="BEN_A_ONG" value={formData.BEN_A_ONG} onChange={handleChange} placeholder="Họ tên Ông..."/><Input name="BEN_A_CMND_ONG" value={formData.BEN_A_CMND_ONG} onChange={handleChange} placeholder="CMND Ông..."/> <Input name="BEN_A_BA" value={formData.BEN_A_BA} onChange={handleChange} placeholder="Họ tên Bà..."/><Input name="BEN_A_CMND_BA" value={formData.BEN_A_CMND_BA} onChange={handleChange} placeholder="CMND Bà..."/></div>
+                     <div className="space-y-2"><Label><User size={14} className="inline mr-2"/>Bên Thuê</Label><Input name="BEN_B_ONG" value={formData.BEN_B_ONG} onChange={handleChange} placeholder="Họ tên Ông..."/><Input name="BEN_B_CMND_ONG" value={formData.BEN_B_CMND_ONG} onChange={handleChange} placeholder="CMND Ông..."/></div>
+                     <div className="space-y-2"><Label><Home size={14} className="inline mr-2"/>Thông tin căn hộ</Label><Input name="SO_NHA" value={formData.SO_NHA} onChange={handleChange} placeholder="Số nhà..."/><Input name="TANG" value={formData.TANG} onChange={handleChange} placeholder="Tầng..."/><Input name="TOA_NHA" value={formData.TOA_NHA} onChange={handleChange} placeholder="Tòa nhà..."/><Input name="KHU_CHUNG_CU" value={formData.KHU_CHUNG_CU} onChange={handleChange} placeholder="Khu chung cư..."/><Input name="DIEN_TICH" value={formData.DIEN_TICH} onChange={handleChange} placeholder="Diện tích m2..."/></div>
+                    <div className="space-y-2"><Label><Calendar size={14} className="inline mr-2"/>Thời gian</Label><Input name="THOI_HAN_THUE" value={formData.THOI_HAN_THUE} onChange={handleChange} placeholder="Thời hạn thuê (VD: 1 năm)"/><div className="grid grid-cols-2 gap-2"><Input name="NGAY_BAT_DAU" type="date" value={formData.NGAY_BAT_DAU} onChange={handleChange} /><Input name="NGAY_KET_THUC" type="date" value={formData.NGAY_KET_THUC} onChange={handleChange} /></div></div>
+                    <div className="space-y-2"><Label><DollarSign size={14} className="inline mr-2"/>Tài chính</Label><Input name="GIA_THUE" type="number" value={formData.GIA_THUE} onChange={handleChange} placeholder="Giá thuê/tháng..."/><Input name="TIEN_COC" type="number" value={formData.TIEN_COC} onChange={handleChange} placeholder="Tiền cọc..."/></div>
+                </div>
+            </div>
+         </div>
+
+         {/* --- CỘT PHẢI: PREVIEW (DẠNG CUỘN DỌC) --- */}
+         <div className="flex-1 bg-slate-100 p-8 flex justify-center overflow-y-auto custom-scrollbar">
+            {/* 
+              Div này mô phỏng một trang giấy A4 dài có thể cuộn
+              - Bỏ min-h để nó tự co giãn theo nội dung
+            */}
+            <div id="contract-preview-content" className="bg-white w-full max-w-[800px] shadow-lg border border-slate-200 p-[2cm] md:p-[3cm] relative">
+                <div 
+                    className="font-serif text-black max-w-none prose-p:my-2 prose-h2:text-center prose-strong:text-black"
+                    dangerouslySetInnerHTML={{ __html: renderedHtml }} 
+                />
+            </div>
+         </div>
       </div>
+      
+      {/* --- DIALOG --- */}
+      <Dialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
+        <DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle className="flex items-center gap-2"><AlertTriangle className="text-orange-500" size={20}/> Xác nhận lưu</DialogTitle><DialogDescription>Hợp đồng <strong>"{formData.title}"</strong> sẽ được lưu vào <strong>Inspections</strong> với trạng thái "Chưa phân tích".</DialogDescription></DialogHeader><DialogFooter><Button variant="outline" onClick={() => setIsConfirmOpen(false)}>Hủy</Button><Button onClick={handleConfirmSave} className="bg-[#4F46E5] hover:bg-blue-700">Đồng ý lưu</Button></DialogFooter></DialogContent>
+      </Dialog>
     </div>
   );
 };
