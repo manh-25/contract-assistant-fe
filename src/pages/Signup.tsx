@@ -86,8 +86,8 @@ const Signup = () => {
         description: "Vui lòng kiểm tra email để xác thực tài khoản."
       });
       navigate("/login");
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError((err as Error).message);
     } finally {
       setLoading(false);
     }

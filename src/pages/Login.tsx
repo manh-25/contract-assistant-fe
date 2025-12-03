@@ -48,8 +48,8 @@ const Login = () => {
       }
       toast({ title: "Đăng nhập thành công!" });
       navigate("/dashboard");
-    } catch (err: any) {
-      setError(err.message || "Tên đăng nhập hoặc mật khẩu không đúng. Vui lòng thử lại.");
+    } catch (err: unknown) {
+      setError((err as Error).message || "Tên đăng nhập hoặc mật khẩu không đúng. Vui lòng thử lại.");
     } finally {
       setLoading(false);
     }

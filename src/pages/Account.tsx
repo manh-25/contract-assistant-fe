@@ -30,7 +30,7 @@ const InfoRow = ({ icon, label, value, onClick }: { icon: React.ElementType, lab
 
 
 // --- Editing Modal --- 
-const EditModal = ({ field, currentVal, onClose, onSave, isClearable }: { field: string, currentVal: any, onClose: () => void, onSave: (field: string, value: any) => void, isClearable: boolean }) => {
+const EditModal = ({ field, currentVal, onClose, onSave, isClearable }: { field: string, currentVal: string, onClose: () => void, onSave: (field: string, value: string) => void, isClearable: boolean }) => {
   const { t } = useTranslation();
   const [value, setValue] = useState(currentVal);
 
@@ -91,10 +91,10 @@ const Account = () => {
   const { user, updateUserProfile } = useAuth();
   const { t } = useTranslation();
   const { toast } = useToast();
-  const [modalState, setModalState] = useState<{ isOpen: boolean; field: string; currentVal: any; isClearable: boolean; }>({ isOpen: false, field: '', currentVal: '', isClearable: false });
+  const [modalState, setModalState] = useState<{ isOpen: boolean; field: string; currentVal: string; isClearable: boolean; }>({ isOpen: false, field: '', currentVal: '', isClearable: false });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const openModal = (field: string, currentVal: any) => {
+  const openModal = (field: string, currentVal: string) => {
     const clearableFields = ['birthdate', 'gender', 'phone'];
     setModalState({ 
         isOpen: true, 
@@ -108,7 +108,7 @@ const Account = () => {
     setModalState({ isOpen: false, field: '', currentVal: '', isClearable: false });
   };
 
-  const handleSave = async (field: string, value: any) => {
+  const handleSave = async (field: string, value: string) => {
     const { error } = await updateUserProfile({ [field]: value });
     if (error) {
       toast({ title: "Update failed", description: error.message, variant: "destructive" });
@@ -217,7 +217,7 @@ const Account = () => {
             <InfoRow 
               icon={Mail} 
               label={t.email} 
-              value={user?.email || '-'} 
+              value={user?.email || '-'}
             />
             <InfoRow 
               icon={Phone} 

@@ -34,8 +34,8 @@ const ForgotPassword = () => {
         throw authError;
       }
       setIsEmailSent(true);
-    } catch (err: any) {
-      setError(err.message || "Đã xảy ra lỗi. Vui lòng thử lại.");
+    } catch (err: unknown) {
+      setError((err as Error).message || "Đã xảy ra lỗi. Vui lòng thử lại.");
     } finally {
       setLoading(false);
     }

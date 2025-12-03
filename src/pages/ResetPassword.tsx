@@ -66,8 +66,8 @@ const ResetPassword = () => {
         throw authError;
       }
       setIsSuccess(true);
-    } catch (err: any) {
-      setError(err.message || "Không thể đặt lại mật khẩu. Vui lòng thử lại.");
+    } catch (err: unknown) {
+      setError((err as Error).message || "Không thể đặt lại mật khẩu. Vui lòng thử lại.");
     } finally {
       setLoading(false);
     }
