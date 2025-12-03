@@ -1,248 +1,262 @@
-import React, { useEffect, useState } from 'react';
+
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  Search, Plus, MoreHorizontal, ChevronLeft, ChevronRight, 
-  FileText, Trash2 
+  Search, Plus, MoreHorizontal, FileText, Trash2, Eye, ShieldCheck, ShieldAlert, AlertTriangle, ScanSearch, FileUp
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useAuth, UserInspection } from '@/contexts/AuthContext';
+import { useToast } from '@/components/ui/use-toast';
+import { formatDistanceToNow } from 'date-fns';
+import { vi } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
-// Định nghĩa kiểu dữ liệu
-interface Contract {
-  id: number;
-  name: string;
-  type: string;
-  score: number;
-  timestamp: string;
-  status: string;
-  docNumber: string;
-}
 
-const Inspections = () => {
+export const Inspections = () => {
   const navigate = useNavigate();
-  const [contracts, setContracts] = useState<Contract[]>([]);
+  const { user, updateUserProfile, loading } = useAuth();
+  const { toast } = useToast();
+  
   const [searchTerm, setSearchTerm] = useState('');
+  const [viewingInspection, setViewingInspection] = useState<UserInspection | null>(null);
+  const [deletingInspection, setDeletingInspection] = useState<UserInspection | null>(null);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
-  // --- LOAD DỮ LIỆU ---
-  useEffect(() => {
-    const savedData = localStorage.getItem('saved_contracts');
-    if (savedData) {
-      setContracts(JSON.parse(savedData));
+  const handleActionClick = (inspection: UserInspection) => {
+    if (inspection.score > -1 && inspection.analysisData) {
+      // Navigate to DeepAnalysis page with the analysis data
+      navigate('/deep-analysis', { 
+        state: { 
+          analysisData: inspection.analysisData, 
+          fileName: inspection.name 
+        } 
+      });
     } else {
-      // DỮ LIỆU MẪU MỚI (CẬP NHẬT ĐỂ DEMO MÀU XANH/ĐỎ)
-      const now = new Date();
-      const yesterday = new Date(now.getTime() - 25 * 60 * 60 * 1000); 
-
-      const mockData = [
-        {
-          id: 1,
-          name: "Thỏa thuận bảo mật thông tin (NDA)",
-          type: "Contract Analysis",
-          score: 95, // Điểm cao -> Màu xanh
-          timestamp: now.toISOString(),
-          status: "Completed",
-          docNumber: "DOC-9001"
-        },
-        {
-          id: 2,
-          name: "TEST 1 - LC.pdf",
-          type: "Contract Analysis",
-          score: 72, // Điểm TB -> Màu cam
-          timestamp: new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString(),
-          status: "In Progress",
-          docNumber: "DOC-2500"
-        },
-        {
-          id: 3,
-          name: "Hợp đồng thuê nhà xưởng cũ",
-          type: "Contract Analysis",
-          score: 45, // Điểm thấp -> Màu đỏ
-          timestamp: yesterday.toISOString(),
-          status: "Completed",
-          docNumber: "DOC-3624"
-        }
-      ];
-      
-      setContracts(mockData);
-      localStorage.setItem('saved_contracts', JSON.stringify(mockData)); // Lưu mẫu vào luôn
+      // Open the file viewer dialog
+      setViewingInspection(inspection);
     }
-  }, []);
-
-  // --- FORMAT THỜI GIAN ---
-  const formatDisplayTime = (isoString: string) => {
-    if (!isoString) return "";
-    
-    const date = new Date(isoString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime(); 
-    const diffHours = diffMs / (1000 * 60 * 60);
-
-    if (diffHours < 24) {
-        if (diffHours < 1) {
-             const diffMinutes = Math.floor(diffMs / (1000 * 60));
-             return diffMinutes <= 0 ? "Just now" : `${diffMinutes} mins ago`;
-        }
-        return `${Math.floor(diffHours)} hours ago`;
+  };
+  
+  const handleNewAnalysis = () => {
+    const savedAnalysis = localStorage.getItem('current_analysis');
+    if (savedAnalysis) {
+      setIsConfirmOpen(true);
+    } else {
+      navigate('/deep-analysis');
     }
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
   };
 
-  // --- CONTINUE ---
-  const handleContinue = (contract: Contract) => {
-    localStorage.setItem('contract_analysis_state', 'done');
-    localStorage.setItem('contract_filename', contract.name);
+  const confirmNavigation = () => {
+    localStorage.removeItem('current_analysis');
+    localStorage.removeItem('current_analysis_filename');
     navigate('/deep-analysis');
+    setIsConfirmOpen(false);
   };
 
-  const handleDelete = (id: number) => {
-    if(confirm("Bạn có chắc muốn xóa bản ghi này?")) {
-        const newList = contracts.filter(c => c.id !== id);
-        setContracts(newList);
-        localStorage.setItem('saved_contracts', JSON.stringify(newList));
+  const handleDelete = async () => {
+    if (!user || !deletingInspection) return;
+
+    const updatedInspections = user.inspections.filter(i => i.id !== deletingInspection.id);
+    const { error } = await updateUserProfile({ inspections: updatedInspections });
+
+    if (!error) {
+      toast({ title: "Đã xóa thành công!" });
+      setDeletingInspection(null);
+    } else {
+      toast({ title: "Lỗi", description: "Không thể xóa.", variant: "destructive" });
     }
+  };
+
+  const getScoreDisplay = (score: number) => {
+    if (score < 0) {
+      return <span className="font-medium text-slate-500 flex items-center gap-2"><ShieldAlert size={16}/>Chưa phân tích</span>;
+    }
+    const scoreColor = score >= 80 ? 'text-green-600' : score >= 60 ? 'text-amber-600' : 'text-red-600';
+    return <span className={cn('font-bold flex items-center gap-2', scoreColor)}><ShieldCheck size={16}/>{score}%</span>;
+  };
+  
+  if (loading) {
+      return <div className="p-6 text-center">Đang tải dữ liệu...</div>;
   }
 
-  const filteredContracts = contracts.filter(c => 
-    c.name.toLowerCase().includes(searchTerm.toLowerCase())
+  const sortedInspections = user?.inspections.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) || [];
+
+  const filteredInspections = sortedInspections.filter(i => 
+    i.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
-    <div className="p-6 max-w-[1400px] mx-auto font-sans text-slate-700">
-      
-      {/* HEADER (ĐÃ XÓA NÚT START INSPECTION) */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-[#1e1b4b]">Inspections</h1>
-      </div>
-
-      {/* TOOLBAR */}
-      <div className="flex items-center gap-4 mb-6">
-        <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-            <Input 
-                placeholder="Search" 
-                className="pl-9 bg-white border-slate-300 h-10 rounded-lg" 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-            />
-        </div>
-        <button className="flex items-center gap-1 text-[#4F46E5] font-medium text-sm hover:underline">
-            <Plus size={16}/> Add filter
-        </button>
-        <div className="ml-auto text-xs text-slate-500 font-medium">
-            1 - {filteredContracts.length} of {filteredContracts.length} results
-        </div>
-        <button className="text-slate-400 hover:text-slate-600"><MoreHorizontal size={20}/></button>
-      </div>
-
-      {/* TABLE LIST */}
-      <div className="bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden min-h-[400px]">
+    <>
+      <div className="p-6 max-w-[1400px] mx-auto font-sans text-slate-700">
         
-        {/* Table Header */}
-        <div className="flex items-center p-3 bg-gray-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-            <div className="w-10 flex justify-center"><input type="checkbox" className="w-4 h-4 rounded border-gray-300"/></div>
-            <div className="flex-1 px-4">Inspection</div>
-            <div className="w-32 text-right pr-8">Doc Number</div>
-            <div className="w-24 text-center">Score</div>
-            <div className="w-32 text-center">Conducted</div>
-            <div className="w-32 text-center">Completed</div>
-            <div className="w-10"></div>
+        <div className="flex justify-between items-center mb-8">
+          <div>
+              <h1 className="text-2xl font-bold text-gray-800">Lịch sử phân tích</h1>
+              <p className="text-gray-500 text-sm mt-1">Xem lại và quản lý các hợp đồng đã được phân tích.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button onClick={() => navigate('/library')} variant="outline" className="gap-2">
+                <FileUp size={16} /> Tạo hợp đồng từ mẫu
+            </Button>
+            <Button onClick={handleNewAnalysis} className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2">
+                <Plus size={16} /> Phân tích tài liệu mới
+            </Button>
+          </div>
         </div>
 
-        {/* Table Body */}
-        <div>
-            {filteredContracts.length > 0 ? (
-                filteredContracts.map((contract) => (
-                    <div key={contract.id} className="group flex items-center p-4 border-b border-slate-100 hover:bg-blue-50/30 transition-colors last:border-0 h-20">
-                        {/* Checkbox */}
-                        <div className="w-10 flex justify-center">
-                            <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-[#4F46E5] focus:ring-[#4F46E5]"/>
-                        </div>
+        <div className="flex items-center gap-4 mb-6 bg-white p-2 rounded-xl border border-slate-200/80 shadow-sm">
+          <div className="relative flex-1">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+              <Input 
+                  placeholder="Tìm kiếm theo tên..." 
+                  className="pl-9 border-none shadow-none focus-visible:ring-0 bg-transparent h-10" 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+              />
+          </div>
+        </div>
 
-                        {/* Inspection Info */}
-                        <div className="flex-1 px-4 flex items-center gap-4">
-                            <div className="w-10 h-10 bg-white border border-slate-200 rounded-lg flex items-center justify-center shrink-0 text-[#4F46E5] font-bold text-xs shadow-sm">
-                                DTZ
-                            </div>
-                            <div>
-                                <h3 
-                                    className="text-sm font-bold text-slate-800 mb-0.5 cursor-pointer hover:text-[#4F46E5]"
-                                    onClick={() => handleContinue(contract)}
-                                >
-                                    {contract.name}
-                                </h3>
-                                <p className="text-xs text-slate-500">{contract.type}</p>
-                            </div>
-                        </div>
-
-                        {/* Doc Number */}
-                        <div className="w-32 text-right pr-8 text-xs text-slate-400 font-mono">
-                            {contract.docNumber}
-                        </div>
-
-                        {/* Score (LOGIC MÀU SẮC) */}
-                        <div className="w-24 flex justify-center">
-                            <span className={`text-sm font-bold ${
-                                contract.score >= 80 ? 'text-green-600' : 
-                                (contract.score >= 60 ? 'text-orange-600' : 'text-red-600')
-                            }`}>
-                                {contract.score}%
-                            </span>
-                        </div>
-
-                        {/* Conducted Date */}
-                        <div className="w-32 text-center text-xs text-slate-500">
-                            {formatDisplayTime(contract.timestamp)}
-                        </div>
-
-                        {/* Status / Action */}
-                        <div className="w-32 flex justify-center">
-                            <span 
-                                onClick={() => handleContinue(contract)}
-                                className="text-xs font-bold text-[#4F46E5] hover:underline cursor-pointer"
-                            >
-                                {contract.status === 'Completed' ? "View report" : "Continue"}
-                            </span>
-                        </div>
-
-                        {/* Menu Action */}
-                        <div className="w-10 flex justify-center relative">
-                             <button className="text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-100 group-hover:block hidden" onClick={() => handleDelete(contract.id)}>
-                                <Trash2 size={16} />
-                             </button>
-                             <button className="text-slate-400 hover:text-slate-600 p-1 group-hover:hidden block">
-                                <MoreHorizontal size={18} />
-                             </button>
-                        </div>
-                    </div>
-                ))
-            ) : (
-                <div className="flex flex-col items-center justify-center py-20 text-slate-400">
-                    <FileText size={48} className="mb-4 opacity-20"/>
-                    <p>Chưa có hợp đồng nào được lưu.</p>
-                </div>
-            )}
+        <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm overflow-hidden">
+          <table className="w-full text-left text-sm">
+              <thead className="bg-slate-50 border-b border-slate-200/80">
+                  <tr>
+                      <th className="px-6 py-4 font-semibold text-slate-600">Tên hợp đồng</th>
+                      <th className="px-6 py-4 font-semibold text-slate-600 w-40">Điểm rủi ro</th>
+                      <th className="px-6 py-4 font-semibold text-slate-600 w-40">Ngày tạo</th>
+                      <th className="px-6 py-4 font-semibold text-slate-600 w-24 text-right">Hành động</th>
+                  </tr>
+              </thead>
+              {filteredInspections.length > 0 && (
+                <tbody className="divide-y divide-slate-100">
+                    {filteredInspections.map((item) => (
+                        <tr key={item.id} className="hover:bg-slate-50/50 transition-colors group">
+                            <td className="px-6 py-4">
+                                <a onClick={() => handleActionClick(item)} className="flex items-center gap-3 cursor-pointer">
+                                    <div className="w-8 h-8 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center shrink-0">
+                                        <FileText size={16} />
+                                    </div>
+                                    <span className="font-medium text-slate-800 hover:text-indigo-600">{item.name}</span>
+                                </a>
+                            </td>
+                            <td className="px-6 py-4 text-slate-500">{getScoreDisplay(item.score)}</td>
+                            <td className="px-6 py-4 text-slate-500">{formatDistanceToNow(new Date(item.createdAt), { addSuffix: true, locale: vi })}</td>
+                            <td className="px-6 py-4 text-right">
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="text-slate-400 hover:text-slate-600 data-[state=open]:bg-slate-100">
+                                            <MoreHorizontal size={18} />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onClick={() => handleActionClick(item)}>
+                                            <Eye className="mr-2 h-4 w-4" /> {item.score > -1 ? 'Xem lại phân tích' : 'Xem nội dung'}
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => setDeletingInspection(item)} className="text-red-500 focus:text-red-500">
+                                            <Trash2 className="mr-2 h-4 w-4" /> Xóa
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+              )}
+          </table>
+          {filteredInspections.length === 0 && (
+             <div className="p-16 text-center text-slate-500">
+                <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4"><Search size={32} className="text-slate-400"/></div>
+                <h3 className="font-semibold text-lg">Không có phân tích nào</h3>
+                <p className="text-sm mt-1 mb-4">Các hợp đồng bạn phân tích sẽ được lưu trữ tại đây để tiện cho việc tra cứu.</p>
+                 <Button onClick={handleNewAnalysis} className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2">
+                  <Plus size={16}/> Phân tích ngay
+                </Button>
+              </div>
+          )}
         </div>
       </div>
 
-      {/* PAGINATION */}
-      <div className="flex justify-end items-center mt-6 gap-2">
-            <button className="w-8 h-8 flex items-center justify-center border border-slate-200 rounded hover:bg-slate-50 disabled:opacity-50 text-slate-500">
-                <ChevronLeft size={16} />
-            </button>
-            <div className="flex items-center">
-                <input 
-                    type="text" 
-                    defaultValue="1" 
-                    className="w-8 h-8 border border-slate-200 text-center text-sm rounded hover:border-[#4F46E5] focus:outline-none focus:border-[#4F46E5] mx-2" 
-                />
-                <span className="text-slate-500 text-sm">/ 1</span>
-            </div>
-            <button className="w-8 h-8 flex items-center justify-center border border-slate-200 rounded hover:bg-slate-50 disabled:opacity-50 text-slate-500">
-                <ChevronRight size={16} />
-            </button>
-      </div>
-    </div>
+      {/* View (unscored) Inspection Content Dialog */}
+      <Dialog open={!!viewingInspection} onOpenChange={() => setViewingInspection(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>{viewingInspection?.name}</DialogTitle>
+            <DialogDescription>Tài liệu này chưa được phân tích. Bạn chỉ có thể xem nội dung hoặc bắt đầu phân tích nó.</DialogDescription>
+          </DialogHeader>
+          <div className="mt-4 max-h-[70vh] overflow-y-auto p-4 bg-gray-50 rounded-md border prose max-w-none">
+             <div dangerouslySetInnerHTML={{ __html: viewingInspection?.content || '' }} />
+          </div>
+          <DialogFooter className="sm:justify-between gap-2">
+             <Button 
+                onClick={() => {
+                  // Here we can pass the content to the analysis page if we enhance it to accept content directly
+                  // For now, it just navigates, and the user has to re-upload.
+                  navigate('/deep-analysis');
+                  setViewingInspection(null);
+                }}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2">
+                <ScanSearch size={16}/> Phân tích tài liệu này
+              </Button>
+            <Button type="button" variant="outline" onClick={() => setViewingInspection(null)}>Đóng</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!deletingInspection} onOpenChange={() => setDeletingInspection(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><AlertTriangle className="text-destructive"/> Xác nhận xóa</DialogTitle>
+            <DialogDescription>
+              Bạn có chắc chắn muốn xóa <strong>"{deletingInspection?.name}"</strong>? Hành động này không thể hoàn tác.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeletingInspection(null)}>Hủy</Button>
+            <Button variant="destructive" onClick={handleDelete}>Xóa</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Unsaved Changes Confirmation Dialog */}
+      <AlertDialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Phân tích chưa được lưu</AlertDialogTitle>
+            <AlertDialogDescription>Có một phân tích đang thực hiện chưa được lưu. Bạn có muốn hủy bỏ và bắt đầu phân tích mới không?</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Ở lại</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmNavigation}>Hủy bỏ & Tiếp tục</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 };
 
-export default Inspections;
+export default Inspections; 

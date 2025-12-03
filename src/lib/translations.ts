@@ -1,7 +1,48 @@
+
+import { useState, useEffect } from "react";
+
 export type Language = "vi" | "en";
+
+let currentLanguage: Language = "vi"; // Default language
+const listeners = new Set<() => void>();
+
+export const setLanguage = (lang: Language) => {
+  if (lang !== currentLanguage) {
+    currentLanguage = lang;
+    // Persist language preference
+    localStorage.setItem('agreeme_language', lang);
+    listeners.forEach((listener) => listener());
+  }
+};
+
+// Check for saved language on initial load
+const savedLang = localStorage.getItem('agreeme_language');
+if (savedLang && (savedLang === 'vi' || savedLang === 'en')) {
+  currentLanguage = savedLang;
+}
+
+
+export const useTranslation = () => {
+  const [, forceUpdate] = useState({});
+
+  useEffect(() => {
+    const listener = () => forceUpdate({});
+    listeners.add(listener);
+    return () => listeners.delete(listener);
+  }, []);
+
+  return {
+    t: translations[currentLanguage],
+    language: currentLanguage,
+    setLanguage,
+  };
+};
 
 export const translations = {
   vi: {
+    // General
+    language: "Ngôn ngữ",
+
     // Navigation
     home: "Trang chủ",
     quickReview: "Review nhanh",
@@ -118,39 +159,24 @@ export const translations = {
     signIn: "Đăng nhập ngay",
     passwordMismatch: "Mật khẩu không khớp",
     
-    // Profile
-    profileTitle: "Hồ sơ",
-    profileTab: "Hồ sơ",
-    passwordTab: "Mật khẩu",
-    settingsTab: "Cài đặt",
-    personalInfo: "Thông tin cá nhân",
-    personalInfoDesc: "Cập nhật thông tin cá nhân của bạn",
-    fullName: "Họ và tên",
-    phone: "Số điện thoại",
-    saveChanges: "Lưu thay đổi",
-    changePassword: "Đổi mật khẩu",
-    changePasswordDesc: "Cập nhật mật khẩu của bạn",
-    currentPassword: "Mật khẩu hiện tại",
-    newPassword: "Mật khẩu mới",
-    updatePassword: "Cập nhật mật khẩu",
-    accountSettings: "Cài đặt tài khoản",
-    accountSettingsDesc: "Quản lý cài đặt tài khoản của bạn",
-    emailNotifications: "Thông báo email",
-    emailNotificationsDesc: "Nhận thông báo qua email",
-    twoFactorAuth: "Xác thực hai yếu tố",
-    twoFactorAuthDesc: "Tăng cường bảo mật tài khoản",
-    deleteAccount: "Xóa tài khoản",
-    deleteAccountDesc: "Xóa vĩnh viễn tài khoản của bạn",
-    manage: "Quản lý",
-    enable: "Bật",
-    profileUpdated: "Cập nhật thông tin thành công",
-    profileUpdatedDesc: "Thông tin cá nhân đã được cập nhật",
-    passwordChanged: "Đổi mật khẩu thành công",
-    passwordChangedDesc: "Mật khẩu của bạn đã được cập nhật",
-    uploadAvatar: "Tải ảnh đại diện",
-    avatarUpdated: "Cập nhật ảnh đại diện thành công",
+    // Account Page Redesign
+    accountPageTitle: "Thông tin cá nhân",
+    accountPageSubtitle: "Thông tin trong hồ sơ của bạn và các tùy chọn để quản lý thông tin đó.",
+    basicInfo: "Thông tin cơ bản",
+    basicInfoDesc: "Một số thông tin có thể hiển thị cho người khác.",
+    contactInfo: "Thông tin liên hệ",
+    profilePicture: "Ảnh hồ sơ",
+    profilePictureDesc: "Thêm ảnh để cá nhân hóa tài khoản của bạn.",
+    name: "Tên",
+    birthdate: "Ngày sinh",
+    gender: "Giới tính",
+    phone: "Điện thoại",
+    notSet: "Chưa thiết lập",
   },
   en: {
+    // General
+    language: "Language",
+
     // Navigation
     home: "Home",
     quickReview: "Quick Review",
@@ -266,41 +292,19 @@ export const translations = {
     alreadyHaveAccount: "Already have an account?",
     signIn: "Sign in now",
     passwordMismatch: "Passwords do not match",
-    
-    // Profile
-    profileTitle: "Profile",
-    profileTab: "Profile",
-    passwordTab: "Password",
-    settingsTab: "Settings",
-    personalInfo: "Personal Information",
-    personalInfoDesc: "Update your personal information",
-    fullName: "Full Name",
-    phone: "Phone Number",
-    saveChanges: "Save Changes",
-    changePassword: "Change Password",
-    changePasswordDesc: "Update your password",
-    currentPassword: "Current Password",
-    newPassword: "New Password",
-    updatePassword: "Update Password",
-    accountSettings: "Account Settings",
-    accountSettingsDesc: "Manage your account settings",
-    emailNotifications: "Email Notifications",
-    emailNotificationsDesc: "Receive notifications via email",
-    twoFactorAuth: "Two-Factor Authentication",
-    twoFactorAuthDesc: "Add extra security to your account",
-    deleteAccount: "Delete Account",
-    deleteAccountDesc: "Permanently delete your account",
-    manage: "Manage",
-    enable: "Enable",
-    profileUpdated: "Profile Updated Successfully",
-    profileUpdatedDesc: "Your personal information has been updated",
-    passwordChanged: "Password Changed Successfully",
-    passwordChangedDesc: "Your password has been updated",
-    uploadAvatar: "Upload Avatar",
-    avatarUpdated: "Avatar Updated Successfully",
-  },
-};
 
-export const useTranslation = (lang: Language) => {
-  return translations[lang];
+    // Account Page Redesign
+    accountPageTitle: "Personal info",
+    accountPageSubtitle: "Info in your profile and the options to manage it.",
+    basicInfo: "Basic info",
+    basicInfoDesc: "Some info may be visible to other people.",
+    contactInfo: "Contact info",
+    profilePicture: "Profile picture",
+    profilePictureDesc: "Add a photo to personalize your account.",
+    name: "Name",
+    birthdate: "Birthdate",
+    gender: "Gender",
+    phone: "Phone",
+    notSet: "Not set",
+  },
 };

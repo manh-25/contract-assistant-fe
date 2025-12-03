@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  FileText, Plus, Search, MoreHorizontal, Edit, Trash2, Play 
+  FileText, Plus, Search, MoreHorizontal, Edit, Trash2, Save
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,136 +12,174 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useAuth, UserDraft, UserInspection } from '@/contexts/AuthContext';
+import { useToast } from "@/components/ui/use-toast";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { formatDistanceToNow } from 'date-fns';
+import { vi } from 'date-fns/locale';
 
-interface Template {
-  id: number;
-  title: string;
-  category: string;
-  lastModified: string;
-  author: string;
-}
-
-const Templates = () => {
+export const Templates = () => {
   const navigate = useNavigate();
-  const [templates, setTemplates] = useState<Template[]>([]);
+  const { user, updateUserProfile } = useAuth();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
+  const [actionDraft, setActionDraft] = useState<UserDraft | null>(null); // For modals
+  const [isSaveAlertOpen, setIsSaveAlertOpen] = useState(false);
 
-  // --- LOAD TEMPLATES (Giả lập lấy từ LocalStorage hoặc API) ---
-  useEffect(() => {
-    // Dữ liệu mẫu ban đầu (những cái user đã lưu từ Library)
-    const initialData = [
-      { id: 1, title: "Hợp đồng Lao động", category: "Nhân sự", lastModified: "2 hours ago", author: "Agreeme" },
-      { id: 2, title: "Hợp đồng Thuê nhà", category: "Bất động sản", lastModified: "1 day ago", author: "Admin" },
-    ];
-    
-    // Kiểm tra localStorage xem có template nào user mới lưu không
-    const savedTemplates = localStorage.getItem('user_templates');
-    if (savedTemplates) {
-        setTemplates(JSON.parse(savedTemplates));
+  const handleDelete = async (draftId: string) => {
+    if (!user || !window.confirm("Bạn có chắc muốn xóa bản nháp này?")) return;
+
+    const updatedTemplates = user.templates.filter(t => t.id !== draftId);
+    const { error } = await updateUserProfile({ templates: updatedTemplates });
+
+    if (!error) {
+      toast({ title: "Đã xóa bản nháp!" });
     } else {
-        setTemplates(initialData);
-        localStorage.setItem('user_templates', JSON.stringify(initialData));
+      toast({ title: "Lỗi", description: "Không thể xóa bản nháp.", variant: "destructive" });
     }
-  }, []);
-
-  // --- HÀM XÓA TEMPLATE ---
-  const handleDelete = (id: number) => {
-    const newTemplates = templates.filter(t => t.id !== id);
-    setTemplates(newTemplates);
-    localStorage.setItem('user_templates', JSON.stringify(newTemplates));
   };
 
-  // --- HÀM TẠO MỚI ---
-  const handleCreateNew = () => {
-    // Chuyển hướng sang trang soạn thảo với mode = 'new'
-    navigate('/templates/create?mode=new');
-  };
+  const handleSaveToInspections = async (deleteDraft: boolean) => {
+    if (!user || !actionDraft) return;
+
+    const newInspection: UserInspection = {
+      id: `insp_${Date.now()}`,
+      name: actionDraft.name,
+      content: actionDraft.content,
+      status: 'unprocessed',
+      score: -1,
+      createdAt: new Date().toISOString(),
+    };
+
+    const updatedInspections = [...user.inspections, newInspection];
+    const updatedTemplates = deleteDraft ? user.templates.filter(t => t.id !== actionDraft.id) : user.templates;
+
+    const { error } = await updateUserProfile({ inspections: updatedInspections, templates: updatedTemplates });
+
+    setIsSaveAlertOpen(false);
+    setActionDraft(null);
+
+    if (!error) {
+      toast({ title: "Thành công!", description: `"${actionDraft.name}" đã được lưu vào mục Inspections.` });
+      navigate('/inspections');
+    } else {
+      toast({ title: "Lỗi", description: "Không thể lưu vào Inspections.", variant: "destructive" });
+    }
+  }
+
+  const filteredTemplates = user?.templates.filter(template =>
+    template.name.toLowerCase().includes(searchTerm.toLowerCase())
+  ) || [];
 
   return (
-    <div className="p-6 max-w-[1400px] mx-auto font-sans text-slate-700">
-      
-      {/* HEADER */}
-      <div className="flex justify-between items-center mb-6">
-        <div>
-            <h1 className="text-2xl font-bold text-[#1e1b4b]">My Templates</h1>
-            <p className="text-slate-500 text-sm mt-1">Manage your custom templates and saved forms.</p>
+    <>
+      <div className="p-6 max-w-[1400px] mx-auto font-sans text-slate-700">
+        
+        <div className="flex justify-between items-center mb-8">
+          <div>
+              <h1 className="text-2xl font-bold text-gray-800">Các bản nháp của tôi</h1>
+              <p className="text-gray-500 text-sm mt-1">Quản lý các hợp đồng bạn đang soạn thảo.</p>
+          </div>
+          <Button onClick={() => navigate('/library')} className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2">
+              <Plus size={16} /> Tạo hợp đồng mới
+          </Button>
         </div>
-        <Button onClick={handleCreateNew} className="bg-[#4F46E5] hover:bg-blue-700 text-white gap-2">
-            <Plus size={18} /> Create Template
-        </Button>
-      </div>
 
-      {/* TOOLBAR */}
-      <div className="flex items-center gap-4 mb-6 bg-white p-2 rounded-lg border border-slate-200">
-        <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-            <Input 
-                placeholder="Search templates..." 
-                className="pl-9 border-none shadow-none focus-visible:ring-0" 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-            />
+        <div className="flex items-center gap-4 mb-6 bg-white p-2 rounded-xl border border-slate-200/80 shadow-sm">
+          <div className="relative flex-1">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+              <Input 
+                  placeholder="Tìm kiếm bản nháp..." 
+                  className="pl-9 border-none shadow-none focus-visible:ring-0 bg-transparent h-10" 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+              />
+          </div>
         </div>
-      </div>
 
-      {/* TABLE LIST */}
-      <div className="bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden">
-        <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 border-b border-slate-200">
-                <tr>
-                    <th className="px-6 py-4 font-semibold text-slate-600">Template Name</th>
-                    <th className="px-6 py-4 font-semibold text-slate-600 w-40">Category</th>
-                    <th className="px-6 py-4 font-semibold text-slate-600 w-40">Author</th>
-                    <th className="px-6 py-4 font-semibold text-slate-600 w-40">Last Modified</th>
-                    <th className="px-6 py-4 font-semibold text-slate-600 w-20 text-right">Actions</th>
-                </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-                {templates.map((template) => (
-                    <tr key={template.id} className="hover:bg-slate-50 transition-colors group">
-                        <td className="px-6 py-4">
-                            <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 bg-blue-50 text-[#4F46E5] rounded flex items-center justify-center">
-                                    <FileText size={16} />
+        <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm overflow-hidden">
+          <table className="w-full text-left text-sm">
+              <thead className="bg-slate-50 border-b border-slate-200/80">
+                  <tr>
+                      <th className="px-6 py-4 font-semibold text-slate-600">Tên bản nháp</th>
+                      <th className="px-6 py-4 font-semibold text-slate-600 w-48">Lần cuối lưu</th>
+                      <th className="px-6 py-4 font-semibold text-slate-600 w-24 text-right">Hành động</th>
+                  </tr>
+              </thead>
+              {filteredTemplates.length > 0 && (
+                <tbody className="divide-y divide-slate-100">
+                    {filteredTemplates.map((draft) => (
+                        <tr key={draft.id} className="hover:bg-slate-50/50 transition-colors group">
+                            <td className="px-6 py-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center shrink-0">
+                                        <FileText size={16} />
+                                    </div>
+                                    <span className="font-medium text-slate-800 cursor-pointer hover:text-indigo-600" onClick={() => navigate(`/templates/edit/${draft.id}`)}>
+                                        {draft.name}
+                                    </span>
                                 </div>
-                                <span className="font-medium text-slate-800 cursor-pointer hover:text-[#4F46E5]" onClick={() => navigate(`/templates/create?id=${template.id}`)}>
-                                    {template.title}
-                                </span>
-                            </div>
-                        </td>
-                        <td className="px-6 py-4">
-                            <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded text-xs font-medium">
-                                {template.category}
-                            </span>
-                        </td>
-                        <td className="px-6 py-4 text-slate-500">{template.author}</td>
-                        <td className="px-6 py-4 text-slate-500">{template.lastModified}</td>
-                        <td className="px-6 py-4 text-right">
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <button className="text-slate-400 hover:text-slate-600 p-1 rounded hover:bg-slate-200">
-                                        <MoreHorizontal size={18} />
-                                    </button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => navigate(`/templates/create?id=${template.id}`)}>
-                                        <Edit className="mr-2 h-4 w-4" /> Edit
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleDelete(template.id)} className="text-red-600">
-                                        <Trash2 className="mr-2 h-4 w-4" /> Delete
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </td>
-                    </tr>
-                ))}
-            </tbody>
-        </table>
-        {templates.length === 0 && (
-            <div className="p-10 text-center text-slate-400">No templates found. Create one or get from Library.</div>
-        )}
+                            </td>
+                            <td className="px-6 py-4 text-slate-500">
+                                {formatDistanceToNow(new Date(draft.lastSaved), { addSuffix: true, locale: vi })}
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="text-slate-400 hover:text-slate-600 data-[state=open]:bg-slate-100">
+                                            <MoreHorizontal size={18} />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onClick={() => navigate(`/templates/edit/${draft.id}`)}>
+                                            <Edit className="mr-2 h-4 w-4" /> Chỉnh sửa
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => { setActionDraft(draft); setIsSaveAlertOpen(true); }}>
+                                            <Save className="mr-2 h-4 w-4" /> Lưu vào Inspections
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => handleDelete(draft.id)} className="text-red-500 focus:text-red-500">
+                                            <Trash2 className="mr-2 h-4 w-4" /> Xóa
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+              )}
+          </table>
+          {filteredTemplates.length === 0 && (
+              <div className="p-16 text-center text-slate-500">
+                <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                  <FileText size={32} className="text-slate-400"/>
+                </div>
+                <h3 className="font-semibold text-lg">Chưa có bản nháp nào</h3>
+                <p className="text-sm mt-1 mb-4">Hãy bắt đầu bằng cách tạo một hợp đồng mới từ thư viện.</p>
+                <Button onClick={() => navigate('/library')} className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2">
+                  Đi tới thư viện
+                </Button>
+              </div>
+          )}
+        </div>
       </div>
-    </div>
+
+      <AlertDialog open={isSaveAlertOpen} onOpenChange={setIsSaveAlertOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Hoàn tất và lưu vào Inspections?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    Tài liệu sau khi được chuyển vào Inspections sẽ không thể chỉnh sửa được nữa. 
+                    Chọn một trong hai tùy chọn bên dưới:
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setActionDraft(null)}>Hủy</AlertDialogCancel>
+                <AlertDialogAction onClick={() => handleSaveToInspections(false)} className="bg-white text-black border border-black hover:bg-gray-200">Lưu bản sao</AlertDialogAction>
+                <AlertDialogAction onClick={() => handleSaveToInspections(true)}>Chuyển vào Inspections</AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 };
 
