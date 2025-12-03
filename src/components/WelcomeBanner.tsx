@@ -9,6 +9,9 @@ export function WelcomeBanner() {
   const navigate = useNavigate();
 
   const getDisplayName = () => {
+    if (user?.fullName) {
+      return user.fullName;
+    }
     if (user?.username) {
       return user.username;
     }

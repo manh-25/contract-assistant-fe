@@ -1,12 +1,13 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTranslation } from '@/lib/translations';
-import { User, Mail, Phone, Cake, VenetianMask, ChevronRight, X, Camera, Trash2 } from 'lucide-react';
+import { User, Mail, Phone, Cake, VenetianMask, ChevronRight, X, Camera, Trash2, Edit } from 'lucide-react';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+
 
 // --- Reusable InfoRow --- 
 const InfoRow = ({ icon, label, value, onClick }: { icon: React.ElementType, label: string, value: string | React.ReactNode, onClick?: () => void }) => {
@@ -36,7 +37,7 @@ const EditModal = ({ field, currentVal, onClose, onSave, isClearable }: { field:
 
   const getTitle = () => {
     switch(field) {
-      case 'username': return t.name;
+      case 'fullName': return t.fullName;
       case 'birthdate': return t.birthdate;
       case 'gender': return t.gender;
       case 'phone': return t.phone;
@@ -93,9 +94,15 @@ const Account = () => {
   const { toast } = useToast();
   const [modalState, setModalState] = useState<{ isOpen: boolean; field: string; currentVal: string; isClearable: boolean; }>({ isOpen: false, field: '', currentVal: '', isClearable: false });
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [fullName, setFullName] = useState(user?.fullName || '');
+  const [isEditingFullName, setIsEditingFullName] = useState(false);
+
+  useEffect(() => {
+    setFullName(user?.fullName || '');
+  }, [user?.fullName]);
 
   const openModal = (field: string, currentVal: string) => {
-    const clearableFields = ['birthdate', 'gender', 'phone'];
+    const clearableFields = ['birthdate', 'gender', 'phone', 'fullName'];
     setModalState({ 
         isOpen: true, 
         field, 
@@ -115,8 +122,13 @@ const Account = () => {
     } else {
       toast({ title: "Profile Updated!", description: `Your ${field} has been updated.` });
       closeModal();
+      if(field === 'fullName') setIsEditingFullName(false);
     }
   };
+
+  const handleFullNameSave = () => {
+    handleSave('fullName', fullName);
+  }
   
   const handleAvatarClick = () => {
     fileInputRef.current?.click();
@@ -168,6 +180,28 @@ const Account = () => {
           <h2 className="text-xl font-semibold text-gray-800 mb-2">{t.basicInfo}</h2>
           <p className="text-sm text-gray-500 mb-4">{t.basicInfoDesc}</p>
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+             <div className="p-4 flex justify-between items-center border-b">
+                {isEditingFullName ? (
+                    <div className="flex-grow flex items-center gap-3">
+                        <Input 
+                            type="text" 
+                            value={fullName} 
+                            onChange={(e) => setFullName(e.target.value)} 
+                            placeholder={t.fullName} 
+                            className="flex-grow" 
+                        />
+                        <Button onClick={handleFullNameSave} size="sm" className="bg-[#4f46e5] hover:bg-[#4338ca] text-white">{t.save}</Button>
+                        <Button onClick={() => { setIsEditingFullName(false); setFullName(user?.fullName || ''); }} size="sm" variant="outline">{t.cancel}</Button>
+                    </div>
+                ) : (
+                    <div className="flex-grow flex items-center justify-between">
+                        <p className="text-lg font-semibold text-gray-800">{fullName || t.notSet}</p>
+                        <Button variant="ghost" size="icon" onClick={() => setIsEditingFullName(true)}>
+                            <Edit className="w-5 h-5 text-gray-500" />
+                        </Button>
+                    </div>
+                )}
+            </div>
 
             <div className="flex items-center justify-between p-4 border-b last:border-b-0">
                 <div className="flex items-center gap-4 cursor-pointer" onClick={handleAvatarClick}>
@@ -189,12 +223,10 @@ const Account = () => {
                     </Button>
                 )}
             </div>
-
             <InfoRow 
               icon={User} 
               label={t.name} 
               value={user?.username || <span className='text-gray-400'>{t.notSet}</span>}
-              onClick={() => openModal('username', user?.username || '')}
             />
             <InfoRow 
               icon={Cake} 
